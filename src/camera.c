@@ -3,11 +3,6 @@
 
 #include "camera.h"
 
-#define CAM_AV 1.5f
-#define CAM_LV 50.0f
-#define MAX_DISTANCE 50.0f
-#define MIN_DISTANCE 30.0f
-
 Camera3D camera = {0};
 float camera_radius = 30.0f;
 float camera_height = 30.0f;
