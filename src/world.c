@@ -20,19 +20,19 @@ void create_scene(GameWorld* world) {
     int p_idx = world->entity_count++;
 
     world->transform[p_idx].position = (Vector3){ 0.0f, -0.5f, 0.0f };
-    world->transform[p_idx].orientation = (Quaternion) {0.0f, 0.0f, 0.0f, 0.0f};
+    world->transform[p_idx].orientation = (Quaternion) {0.0f, 0.0f, 0.0f, 1.0f};
 
     world->rendering[p_idx].model = LoadModelFromMesh(GenMeshCube(20.0f, 1.0f, 20.0f));
     world->rendering[p_idx].material_normal = LoadMaterialDefault();
     
     world->physics_prop[p_idx].inverse_mass = 0.0f;
     world->collision[p_idx].type = SHAPE_CUBE;
-    world->collision[p_idx].params.cube_extents = (Vector3){ 10.0f, 0.5f, 10.0f }; 
+    world->collision[p_idx].params.cube_extents = (Vector3){ 10.0f, 0.5f, 10.0f };
 
     int j_idx = world->entity_count++;
 
     world->transform[j_idx].position = (Vector3){ 0.0f, 1.0f, 0.0f };
-    world->transform[j_idx].orientation = (Quaternion) {0.0f, 0.0f, 0.0f, 0.0f};
+    world->transform[j_idx].orientation = (Quaternion) {0.0f, 0.0f, 0.0f, 1.0f};
 
     world->rendering[j_idx].model = LoadModelFromMesh(GenMeshCube(2.0f, 2.0f, 2.0f));
     
