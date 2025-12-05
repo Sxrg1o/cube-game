@@ -1,3 +1,4 @@
+#include <raylib.h>
 #include <raymath.h>
 
 #include "systems.h"
@@ -32,6 +33,13 @@ void update_physics(GameWorld* world, float delta_time) {
 void update_render(GameWorld* world) {
     for (int i = 0; i < world->entity_count; i++) {
         Matrix orientation = QuaternionToMatrix(world->transform[i].orientation);
-        
+        Matrix translation = MatrixTranslate(world->transform[i].position.x, 
+                                            world->transform[i].position.y,
+                                            world->transform[i].position.z);
+        Matrix res = MatrixMultiply(orientation, translation);
+        world->rendering[i].model.transform = res;
+        Color col = (i == 0) ? GRAY : RED;
+        DrawModel(world->rendering[i].model, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, col);
+        DrawModelWires(world->rendering[i].model, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, BLACK);
     }
 }
