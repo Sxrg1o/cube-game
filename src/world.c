@@ -31,7 +31,7 @@ void create_scene(GameWorld* world) {
 
     int j_idx = world->entity_count++;
 
-    world->transform[j_idx].position = (Vector3){ 0.0f, 1.0f, 0.0f };
+    world->transform[j_idx].position = (Vector3){ 0.0f, 10.0f, 0.0f };
     world->transform[j_idx].orientation = (Quaternion) {0.0f, 0.0f, 0.0f, 1.0f};
 
     world->rendering[j_idx].model = LoadModelFromMesh(GenMeshCube(2.0f, 2.0f, 2.0f));
