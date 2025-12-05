@@ -19,7 +19,7 @@ void init_world(GameWorld* world, int max_entities) {
 }
 
 Matrix calc_inertia_tensor(ShapeType shape_type, float mass, Vector3 dimensions) {
-    Matrix it = {0};
+    Matrix it = MatrixIdentity();
     switch(shape_type) {
         case SHAPE_CUBE:
             float sc = (1.0f/12.0f) * mass;
@@ -80,6 +80,9 @@ int create_entity(GameWorld* world, EntityDesc desc) {
 
     if (desc.is_player) {
         world->player_logic[idx].current_state = STATE_NEUTRAL;
+
+        // JUST TESTING
+        world->physics_state[idx].angular_velocity = (Vector3) {10.0f, 0.0f, 0.0f};
     }
 
     return idx;
