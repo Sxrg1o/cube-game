@@ -23,13 +23,14 @@ int main(void) {
     while (!WindowShouldClose()) {
         float delta_time = GetFrameTime();
 
-        if (IsCursorHidden()) update_camera();
+        update_camera();
         if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
             if (IsCursorHidden()) EnableCursor();
             else DisableCursor();
         }
         
         update_physics(&world, delta_time);
+        detect_collisions(&world);
 
         BeginDrawing();
             ClearBackground(RAYWHITE);

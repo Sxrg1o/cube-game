@@ -8,7 +8,7 @@ typedef struct {
     Quaternion orientation;
     float mass;
     ShapeType shape_type;
-    Vector3 dimensions;
+    Vector3 dimentions;
     Color color;
     bool is_player;
 } EntityDesc;

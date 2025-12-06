@@ -24,7 +24,8 @@ typedef struct {
 // Geometric differenciation (just basic for now i dont want to die)
 typedef enum {
     SHAPE_CUBE,
-    SHAPE_SPHERE
+    SHAPE_SPHERE,
+    SHAPE_PLANE
 } ShapeType;
 
 typedef struct {
@@ -32,6 +33,7 @@ typedef struct {
     union {
         Vector3 cube_extents;
         float sphere_radius;
+        Vector2 plane_extents;
     } params;
 } CollisionShapeComponent;
 
