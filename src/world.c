@@ -99,7 +99,7 @@ void create_scene(GameWorld* world) {
     ground.position = (Vector3){ 0.0f, -0.5f, 0.0f };
     ground.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     ground.mass = 0.0f;
-    ground.restitution = 0.9f;
+    ground.restitution = 0.2f;
     ground.shape_type = SHAPE_CUBE;
     ground.dimentions = (Vector3){ 20.0f, 1.0f, 20.0f };
     ground.color = GRAY;
@@ -112,7 +112,7 @@ void create_scene(GameWorld* world) {
     player.position = (Vector3){ 0.0f, 10.0f, 0.0f };
     player.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     player.mass = 10.0f;
-    player.restitution = 0.3f;
+    player.restitution = 0.2f;
     player.shape_type = SHAPE_CUBE;
     player.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
     player.color = RED;

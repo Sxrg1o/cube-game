@@ -5,7 +5,7 @@
 
 Camera3D camera = {0};
 float camera_radius = 30.0f;
-float camera_height = 30.0f;
+float camera_height = 10.0f;
 
 static float camera_angle = 0.0f;
 
