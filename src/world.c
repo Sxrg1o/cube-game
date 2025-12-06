@@ -9,13 +9,12 @@ void init_world(GameWorld* world, int max_entities) {
     world->max_entities = max_entities;
     world->entity_count = 0;
 
-    world->transform = (TransformComponent*)malloc(sizeof(TransformComponent) * max_entities);
-    world->physics_state = (PhysicsStateComponent*)malloc(sizeof(PhysicsStateComponent) * max_entities);
-    world->physics_prop = (PhysicsPropertiesComponent*)malloc(sizeof(PhysicsPropertiesComponent) * max_entities);
-    world->collision = (CollisionShapeComponent*)malloc(sizeof(CollisionShapeComponent) * max_entities);
-    world->rendering = (RenderComponent*)malloc(sizeof(RenderComponent) * max_entities);
-    
-    world->player_logic = (PlayerLogicComponent*)malloc(sizeof(PlayerLogicComponent) * max_entities);
+    world->transform = (TransformComponent*)calloc(max_entities, sizeof(TransformComponent));
+    world->physics_state = (PhysicsStateComponent*)calloc(max_entities, sizeof(PhysicsStateComponent));
+    world->physics_prop = (PhysicsPropertiesComponent*)calloc(max_entities, sizeof(PhysicsPropertiesComponent));
+    world->collision = (CollisionShapeComponent*)calloc(max_entities, sizeof(CollisionShapeComponent));
+    world->rendering = (RenderComponent*)calloc(max_entities, sizeof(RenderComponent));
+    world->player_logic = (PlayerLogicComponent*)calloc(max_entities, sizeof(PlayerLogicComponent));
 }
 
 Matrix calc_inertia_tensor(ShapeType shape_type, float mass, Vector3 dimentions) {
@@ -75,6 +74,7 @@ int create_entity(GameWorld* world, EntityDesc desc) {
             mesh = GenMeshSphere(desc.dimentions.x, 16, 16);
             world->collision[idx].type = SHAPE_SPHERE;
             world->collision[idx].params.sphere_radius = desc.dimentions.x;
+            world->physics_state[idx].linear_velocity = (Vector3){0.0f, 0.0f, -13.0f};
             break;
         case SHAPE_PLANE:
             mesh = GenMeshPlane(desc.dimentions.x, desc.dimentions.z, 1, 1);
