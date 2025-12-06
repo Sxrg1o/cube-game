@@ -7,6 +7,7 @@ typedef struct {
     Vector3 position;
     Quaternion orientation;
     float mass;
+    float restitution;
     ShapeType shape_type;
     Vector3 dimentions;
     Color color;

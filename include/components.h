@@ -12,6 +12,7 @@ typedef struct {
     Vector3 angular_velocity;
     Vector3 force_accumulator;
     Vector3 torque_accumulator;
+    Matrix inverse_inertia_tensor_world;
 } PhysicsStateComponent;
 
 typedef struct {
@@ -19,6 +20,7 @@ typedef struct {
     float inverse_mass;
     Matrix inertia_tensor;
     Matrix inverse_inertia_tensor;
+    float restitution;
 } PhysicsPropertiesComponent;
 
 // Geometric differenciation (just basic for now i dont want to die)

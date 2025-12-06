@@ -52,6 +52,7 @@ int create_entity(GameWorld* world, EntityDesc desc) {
     world->transform[idx].position = desc.position;
     world->transform[idx].orientation = desc.orientation;
     world->physics_prop[idx].mass = desc.mass;
+    world->physics_prop[idx].restitution = desc.restitution;
 
     if(desc.mass > 0.0f) {
         world->physics_prop[idx].inverse_mass = 1.0f / desc.mass;
@@ -98,6 +99,7 @@ void create_scene(GameWorld* world) {
     ground.position = (Vector3){ 0.0f, -0.5f, 0.0f };
     ground.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     ground.mass = 0.0f;
+    ground.restitution = 0.9f;
     ground.shape_type = SHAPE_CUBE;
     ground.dimentions = (Vector3){ 20.0f, 1.0f, 20.0f };
     ground.color = GRAY;
@@ -110,6 +112,7 @@ void create_scene(GameWorld* world) {
     player.position = (Vector3){ 0.0f, 10.0f, 0.0f };
     player.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     player.mass = 10.0f;
+    player.restitution = 0.3f;
     player.shape_type = SHAPE_CUBE;
     player.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
     player.color = RED;
@@ -122,6 +125,7 @@ void create_scene(GameWorld* world) {
     ball.position = (Vector3){ 5.0f, 10.0f, 0.0f };
     ball.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     ball.mass = 5.0f;
+    ball.restitution = 0.7f;
     ball.shape_type = SHAPE_SPHERE;
     ball.dimentions = (Vector3){ 1.0f, 0.0f, 0.0f };
     ball.color = BLUE;

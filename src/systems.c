@@ -38,6 +38,8 @@ void update_physics(GameWorld* world, float delta_time) {
         Matrix world_inv_it = MatrixMultiply(rot_matrix, 
             MatrixMultiply(world->physics_prop[i].inverse_inertia_tensor, MatrixTranspose(rot_matrix)));
 
+        world->physics_state[i].inverse_inertia_tensor_world = world_inv_it;
+
         Vector3 ang_acc = Vector3TransformRotate(world->physics_state[i].torque_accumulator, world_inv_it);
         
         world->physics_state[i].angular_velocity = Vector3Add(
@@ -111,6 +113,7 @@ static bool check_plane_sphere(GameWorld* world, int plane_idx, int sph_idx, Con
         Vector3 local_normal;
 
         if (distance < 0.0001f) {
+            // TODO: Fix this, check local_delta smallest comp and use it as normal
             local_normal = (Vector3){0.0f, 1.0f, 0.0f};
             if (local_pos.y < 0) local_normal.y = -1.0f;
             contact->penetration = sphere_r; 
@@ -205,8 +208,58 @@ bool dispatch_collision(GameWorld* world, int i, int j, Contact* c) {
 }
 
 static void solve_contact(GameWorld* world, Contact* contacts, int contact_count) {
-    // TODO: Contact point -> Relative contact velocity -> Impulse calc -> Impulse solver -> Pos correction
-    // help...
+    const float slop = 0.01f;
+    const float percent = 0.5f;
+    for(int i = 0; i < contact_count; i++) {
+        Vector3 r_a = Vector3Subtract(contacts[i].impact_point, world->transform[contacts[i].a_idx].position);
+        Vector3 r_b = Vector3Subtract(contacts[i].impact_point, world->transform[contacts[i].b_idx].position);
+        Vector3 vel_a = Vector3Add(world->physics_state[contacts[i].a_idx].linear_velocity, 
+                        Vector3CrossProduct(world->physics_state[contacts[i].a_idx].angular_velocity, r_a));
+        Vector3 vel_b = Vector3Add(world->physics_state[contacts[i].b_idx].linear_velocity, 
+                        Vector3CrossProduct(world->physics_state[contacts[i].b_idx].angular_velocity, r_b));
+        Vector3 vel_rel = Vector3Subtract(vel_b, vel_a);
+        float vel_imp = Vector3DotProduct(vel_rel, contacts[i].normal);
+
+        if(vel_imp > 0) continue;
+
+        float e = world->physics_prop[contacts[i].a_idx].restitution * world->physics_prop[contacts[i].b_idx].restitution;
+        float num = (-1) * (1 + e) * vel_imp;
+        
+        Vector3 utorq_a = Vector3CrossProduct(r_a, contacts[i].normal);
+        Vector3 uiner_a = Vector3TransformRotate(utorq_a, world->physics_state[contacts[i].a_idx].inverse_inertia_tensor_world);
+        float ang_a = Vector3DotProduct(Vector3CrossProduct(uiner_a, r_a), contacts[i].normal);
+        Vector3 utorq_b = Vector3CrossProduct(r_b, contacts[i].normal);
+        Vector3 uiner_b = Vector3TransformRotate(utorq_b, world->physics_state[contacts[i].b_idx].inverse_inertia_tensor_world);
+        float ang_b = Vector3DotProduct(Vector3CrossProduct(uiner_b, r_b), contacts[i].normal);
+        float den = ang_a + ang_b + world->physics_prop[contacts[i].a_idx].inverse_mass
+                    + world->physics_prop[contacts[i].b_idx].inverse_mass;
+        float impulse = num / den;
+        
+        Vector3 impulse_vector = Vector3Scale(contacts[i].normal, impulse);
+        world->physics_state[contacts[i].a_idx].linear_velocity = Vector3Subtract(world->physics_state[contacts[i].a_idx].linear_velocity, 
+            Vector3Scale(impulse_vector, world->physics_prop[contacts[i].a_idx].inverse_mass));
+        world->physics_state[contacts[i].b_idx].linear_velocity = Vector3Add(world->physics_state[contacts[i].b_idx].linear_velocity, 
+            Vector3Scale(impulse_vector, world->physics_prop[contacts[i].b_idx].inverse_mass));
+        
+        Vector3 torq_a = Vector3CrossProduct(r_a, impulse_vector);
+        world->physics_state[contacts[i].a_idx].angular_velocity = Vector3Subtract(world->physics_state[contacts[i].a_idx].angular_velocity, 
+            Vector3TransformRotate(torq_a, world->physics_state[contacts[i].a_idx].inverse_inertia_tensor_world));
+        Vector3 torq_b = Vector3CrossProduct(r_b, impulse_vector);
+        world->physics_state[contacts[i].b_idx].angular_velocity = Vector3Add(world->physics_state[contacts[i].b_idx].angular_velocity,
+            Vector3TransformRotate(torq_b, world->physics_state[contacts[i].b_idx].inverse_inertia_tensor_world));
+
+        // TODO: Friction
+
+        if(contacts[i].penetration > slop) {
+            float scl = (contacts[i].penetration / (world->physics_prop[contacts[i].a_idx].inverse_mass + world->physics_prop[contacts[i].b_idx].inverse_mass));
+            scl *= percent;
+            Vector3 correction = Vector3Scale(contacts[i].normal, scl);
+            world->transform[contacts[i].a_idx].position = Vector3Subtract(world->transform[contacts[i].a_idx].position, 
+                Vector3Scale(correction, world->physics_prop[contacts[i].a_idx].inverse_mass));
+            world->transform[contacts[i].b_idx].position = Vector3Add(world->transform[contacts[i].b_idx].position,
+                Vector3Scale(correction, world->physics_prop[contacts[i].b_idx].inverse_mass));
+        }
+    }
 }
 
 void detect_collisions(GameWorld* world) {
@@ -221,15 +274,14 @@ void detect_collisions(GameWorld* world) {
             }
 
             Contact c;
-            if(dispatch_collision(world, i, j, &c)) {
-                if(contact_count < 100) {
-                    contacts[contact_count++] = c;
-                }
+            if(dispatch_collision(world, i, j, &c) && contact_count < 100) {
+                contacts[contact_count++] = c;
             }
         }
     }
-
-    solve_contact(world, contacts, contact_count);
+    
+    for(int k = 0; k < 5; k++) solve_contact(world, contacts, contact_count);
+    
 }
 
 void update_render(GameWorld* world) {
