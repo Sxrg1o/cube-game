@@ -60,7 +60,6 @@ static int check_plane_sphere(GameWorld* world, int plane_idx, int sph_idx, Cont
         Vector3 local_normal;
 
         if (distance < 0.0001f) {
-            // TODO: Fix this, check local_delta smallest comp and use it as normal
             local_normal = (Vector3){0.0f, 1.0f, 0.0f};
             if (local_pos.y < 0) local_normal.y = -1.0f;
             contact->penetration = sphere_r; 
@@ -73,6 +72,9 @@ static int check_plane_sphere(GameWorld* world, int plane_idx, int sph_idx, Cont
         
         Vector3 closest_world_point = Vector3Add(Vector3RotateByQuaternion(closest_local_point, plane_rot), plane_pos);
         contact->impact_point = closest_world_point;
+        contact->acc_normal_impulse = 0.0f;
+        contact->acc_tangent_impulse_1 = 0.0f;
+        contact->acc_tangent_impulse_2 = 0.0f;
         return 1;
     }
 
