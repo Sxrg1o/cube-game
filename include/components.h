@@ -23,7 +23,6 @@ typedef struct {
     float restitution;
 } PhysicsPropertiesComponent;
 
-// Geometric differenciation (just basic for now i dont want to die)
 typedef enum {
     SHAPE_CUBE,
     SHAPE_SPHERE,

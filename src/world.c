@@ -69,12 +69,15 @@ int create_entity(GameWorld* world, EntityDesc desc) {
             mesh = GenMeshCube(desc.dimentions.x, desc.dimentions.y, desc.dimentions.z);
             world->collision[idx].type = SHAPE_CUBE;
             world->collision[idx].params.cube_extents = Vector3Scale(desc.dimentions, 0.5f);
+            // Test
+            if(idx != 0) world->physics_state[idx].angular_velocity = (Vector3){5.0f, 0.0f, 0.0f};
             break;
         case SHAPE_SPHERE:
             mesh = GenMeshSphere(desc.dimentions.x, 16, 16);
             world->collision[idx].type = SHAPE_SPHERE;
             world->collision[idx].params.sphere_radius = desc.dimentions.x;
-            world->physics_state[idx].linear_velocity = (Vector3){0.0f, 0.0f, -13.0f};
+            // Test
+            world->physics_state[idx].linear_velocity = (Vector3){0.0f, 0.0f, -5.0f};
             break;
         case SHAPE_PLANE:
             mesh = GenMeshPlane(desc.dimentions.x, desc.dimentions.z, 1, 1);
@@ -99,7 +102,7 @@ void create_scene(GameWorld* world) {
     ground.position = (Vector3){ 0.0f, -0.5f, 0.0f };
     ground.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     ground.mass = 0.0f;
-    ground.restitution = 0.2f;
+    ground.restitution = 0.9f;
     ground.shape_type = SHAPE_CUBE;
     ground.dimentions = (Vector3){ 20.0f, 1.0f, 20.0f };
     ground.color = GRAY;

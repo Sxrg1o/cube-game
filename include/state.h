@@ -2,7 +2,6 @@
 
 #include "components.h"
 
-// Just for creating entities
 typedef struct {
     Vector3 position;
     Quaternion orientation;

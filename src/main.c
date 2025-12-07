@@ -30,7 +30,6 @@ int main(void) {
         }
         
         update_physics(&world, delta_time);
-        detect_collisions(&world);
 
         BeginDrawing();
             ClearBackground(RAYWHITE);
