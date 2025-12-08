@@ -4,10 +4,13 @@
 
 #include "state.h"
 #include "world.h"
+#include "aabb.h"
 
 void init_world(GameWorld* world, int max_entities) {
     world->max_entities = max_entities;
     world->entity_count = 0;
+
+    init_tree(&world->collision_tree, max_entities * 4);
 
     world->transform = (TransformComponent*)calloc(max_entities, sizeof(TransformComponent));
     world->physics_state = (PhysicsStateComponent*)calloc(max_entities, sizeof(PhysicsStateComponent));
@@ -17,7 +20,7 @@ void init_world(GameWorld* world, int max_entities) {
     world->player_logic = (PlayerLogicComponent*)calloc(max_entities, sizeof(PlayerLogicComponent));
 }
 
-Matrix calc_inertia_tensor(ShapeType shape_type, float mass, Vector3 dimentions) {
+static Matrix calc_inertia_tensor(ShapeType shape_type, float mass, Vector3 dimentions) {
     Matrix it = MatrixIdentity();
     switch(shape_type) {
         case SHAPE_CUBE:
@@ -52,6 +55,7 @@ int create_entity(GameWorld* world, EntityDesc desc) {
     world->transform[idx].orientation = desc.orientation;
     world->physics_prop[idx].mass = desc.mass;
     world->physics_prop[idx].restitution = desc.restitution;
+    world->physics_state[idx].broadphase_proxy = -1;
 
     if(desc.mass > 0.0f) {
         world->physics_prop[idx].inverse_mass = 1.0f / desc.mass;
@@ -77,7 +81,7 @@ int create_entity(GameWorld* world, EntityDesc desc) {
             world->collision[idx].type = SHAPE_SPHERE;
             world->collision[idx].params.sphere_radius = desc.dimentions.x;
             // Test
-            world->physics_state[idx].linear_velocity = (Vector3){0.0f, 0.0f, -5.0f};
+            world->physics_state[idx].linear_velocity = (Vector3){-5.0f, 0.0f, 0.0f};
             break;
         case SHAPE_PLANE:
             mesh = GenMeshPlane(desc.dimentions.x, desc.dimentions.z, 1, 1);
@@ -144,6 +148,7 @@ void free_world(GameWorld* world) {
         UnloadModel(world->rendering[i].model); 
     }
 
+    free_tree(&world->collision_tree);
     free(world->transform);
     free(world->physics_prop);
     free(world->physics_state);

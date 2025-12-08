@@ -83,22 +83,48 @@ void update_physics(GameWorld* world, float delta_time) {
 }
 
 void detect_collisions(GameWorld* world) {
+    for (int i = 0; i < world->entity_count; i++) {
+        int proxy_id = world->physics_state[i].broadphase_proxy;
+        BoundingBox fat_aabb = get_aabb(world->transform[i].position, world->transform[i].orientation,
+            world->collision[i]);
+
+        if (proxy_id == -1) {
+            world->physics_state[i].broadphase_proxy = insert_leaf(&world->collision_tree, i, fat_aabb);
+        } else {
+            BoundingBox current_node_aabb = world->collision_tree.nodes[proxy_id].aabb;
+            if (!contains_box(current_node_aabb, fat_aabb)) {
+                remove_leaf(&world->collision_tree, proxy_id);
+                world->physics_state[i].broadphase_proxy = insert_leaf(&world->collision_tree, i, fat_aabb);
+            }
+        }
+    }
+
     Contact contacts[512];
     int contact_count = 0;
-    // TODO: For now it's O(n2) but later implement Dynamic AABB tree - BVH (https://robotic.tistory.com/11)
-    for(int i = 0; i < world->entity_count; i++) {
-        for(int j = i + 1; j < world->entity_count; j++) {
-            if(world->physics_prop[i].inverse_mass == 0.0f && 
-               world->physics_prop[j].inverse_mass == 0.0f) {
-                continue;
+    int candidates[128];
+    for (int i = 0; i < world->entity_count; i++) {
+        if (world->physics_prop[i].inverse_mass == 0.0f) continue;
+
+        int candidate_count = 0;
+        BoundingBox query_box = get_aabb(world->transform[i].position, world->transform[i].orientation,
+            world->collision[i]);
+        
+        query_tree(&world->collision_tree, world->collision_tree.root, query_box, candidates, &candidate_count);
+
+        for (int k = 0; k < candidate_count; k++) {
+            int j = candidates[k];
+
+            if (i == j) continue;
+            if (world->physics_prop[j].inverse_mass != 0.0f) {
+                if (i > j) continue; 
             }
 
             Contact batch[4]; 
             int points_found = dispatch_collision(world, i, j, batch);
 
-            for(int k = 0; k < points_found; k++) {
-                if(contact_count < 512) {
-                    contacts[contact_count++] = batch[k];
+            for (int p = 0; p < points_found; p++) {
+                if (contact_count < 512) {
+                    contacts[contact_count++] = batch[p];
                 }
             }
         }

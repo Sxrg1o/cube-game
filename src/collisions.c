@@ -414,24 +414,27 @@ static int check_box_sphere(GameWorld* world, int box_idx, int sph_idx, Contact*
     if (collides) {
         contact->a_idx = box_idx;
         contact->b_idx = sph_idx;
+        Vector3 local_normal = {0};
 
-        Vector3 local_normal;
-        
         if (distance < 0.0001f) {
             float absX = fabsf(local_pos.x) - box_half_ext.x;
             float absY = fabsf(local_pos.y) - box_half_ext.y;
             float absZ = fabsf(local_pos.z) - box_half_ext.z;
+            float max_axis = absX;
+            int axis_idx = 0;
 
-            local_normal = (Vector3){0, 1, 0};
-            if (local_pos.y < 0) local_normal.y = -1.0f;
-            
-            if (absX > absY && absX > absZ) {
+            if (absY > max_axis) { max_axis = absY; axis_idx = 1; }
+            if (absZ > max_axis) { max_axis = absZ; axis_idx = 2; }
+
+            if (axis_idx == 0) {
                 local_normal = (Vector3){ (local_pos.x > 0) ? 1.0f : -1.0f, 0, 0 };
-            } else if (absZ > absY && absZ > absX) {
+            } else if (axis_idx == 1) {
+                local_normal = (Vector3){ 0, (local_pos.y > 0) ? 1.0f : -1.0f, 0 };
+            } else {
                 local_normal = (Vector3){ 0, 0, (local_pos.z > 0) ? 1.0f : -1.0f };
             }
 
-            contact->penetration = sphere_r; 
+            contact->penetration = sphere_r - max_axis; 
         } else {
             local_normal = Vector3Normalize(local_delta);
             contact->penetration = sphere_r - distance;
@@ -440,6 +443,9 @@ static int check_box_sphere(GameWorld* world, int box_idx, int sph_idx, Contact*
         contact->normal = Vector3RotateByQuaternion(local_normal, box_rot);
         Vector3 closest_world_point = Vector3Add(Vector3RotateByQuaternion(closest_local_point, box_rot), box_pos);
         contact->impact_point = closest_world_point;
+        contact->acc_normal_impulse = 0.0f;
+        contact->acc_tangent_impulse_1 = 0.0f;
+        contact->acc_tangent_impulse_2 = 0.0f;
         return 1;
     }
 
@@ -582,12 +588,7 @@ int dispatch_collision(GameWorld* world, int i, int j, Contact* c) {
     }
     
     if (dispatch_table[tB][tA]) {
-        int count = dispatch_table[tB][tA](world, j, i, c);
-        
-        for(int k = 0; k < count; k++) {
-            c[k].normal = Vector3Negate(c[k].normal); 
-        }
-        return count;
+        return dispatch_table[tB][tA](world, j, i, c);
     }
     
     return 0;
