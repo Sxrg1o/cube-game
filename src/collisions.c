@@ -545,7 +545,7 @@ void solve_velocity(GameWorld* world, Contact* contacts, int contact_count) {
 
 void solve_position(GameWorld* world, Contact* contacts, int contact_count) {
     const float slop = 0.01f;
-    const float percent = 0.15f;
+    const float percent = 0.8f;
 
     for(int i = 0; i < contact_count; i++) {
         float penetration = contacts[i].penetration;
@@ -558,7 +558,7 @@ void solve_position(GameWorld* world, Contact* contacts, int contact_count) {
             if (total_inverse_mass <= 0.0f) continue;
 
             float correction_magnitude = (penetration - slop) / total_inverse_mass * percent;
-            if (correction_magnitude > 0.05f) correction_magnitude = 0.05f;
+            if (correction_magnitude > 0.2f) correction_magnitude = 0.2f;
             
             Vector3 correction = Vector3Scale(contacts[i].normal, correction_magnitude);
             

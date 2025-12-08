@@ -14,6 +14,7 @@ typedef struct {
     Vector3 torque_accumulator;
     Matrix inverse_inertia_tensor_world;
     int broadphase_proxy;
+    bool in_ground;
 } PhysicsStateComponent;
 
 typedef struct {
@@ -49,7 +50,7 @@ typedef enum {
 typedef struct {
     FSMState current_state;
     float cooldown_timer;
-    bool in_ground;
+    bool is_player;
 } PlayerLogicComponent;
 
 typedef struct {

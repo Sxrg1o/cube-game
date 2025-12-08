@@ -25,13 +25,10 @@ int main(void) {
         float delta_time = GetFrameTime();
 
         update_camera();
-        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-            if (IsCursorHidden()) EnableCursor();
-            else DisableCursor();
-        }
         
         update_gameplay(&world, camera, delta_time);
         update_physics(&world, delta_time);
+        constrain_player_upright(&world);
 
         BeginDrawing();
             ClearBackground(RAYWHITE);

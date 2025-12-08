@@ -56,14 +56,22 @@ int create_entity(GameWorld* world, EntityDesc desc) {
     world->physics_prop[idx].mass = desc.mass;
     world->physics_prop[idx].restitution = desc.restitution;
     world->physics_state[idx].broadphase_proxy = -1;
+    world->physics_state[idx].in_ground = false;
+    world->player_logic[idx].is_player = desc.is_player;
 
     if(desc.mass > 0.0f) {
         world->physics_prop[idx].inverse_mass = 1.0f / desc.mass;
-        world->physics_prop[idx].inertia_tensor = calc_inertia_tensor(desc.shape_type, desc.mass, desc.dimentions);
-        world->physics_prop[idx].inverse_inertia_tensor = MatrixInvert(world->physics_prop[idx].inertia_tensor);
+        if(desc.is_player) {
+            world->physics_prop[idx].inertia_tensor = MatrixIdentity();
+            world->physics_prop[idx].inverse_inertia_tensor = (Matrix){0};
+        } else {
+            world->physics_prop[idx].inertia_tensor = calc_inertia_tensor(desc.shape_type, desc.mass, desc.dimentions);
+            world->physics_prop[idx].inverse_inertia_tensor = MatrixInvert(world->physics_prop[idx].inertia_tensor);
+        }        
     } else {
         world->physics_prop[idx].inverse_mass = 0.0f;
         world->physics_prop[idx].inertia_tensor = MatrixIdentity();
+        world->physics_prop[idx].inverse_inertia_tensor = (Matrix){0};
     }
 
     Mesh mesh = { 0 };

@@ -49,8 +49,6 @@ static void physics_step(GameWorld* world, float dt) {
         world->physics_state[i].torque_accumulator = Vector3Zero();
     }
 
-    detect_collisions(world); 
-
     for(int i = 0; i < world->entity_count; i++) {
         if(world->physics_prop[i].inverse_mass == 0.0f) continue;
 
@@ -72,6 +70,8 @@ static void physics_step(GameWorld* world, float dt) {
         q = QuaternionAdd(q, QuaternionScale(q_vel, 0.5f * dt));
         world->transform[i].orientation = QuaternionNormalize(q);
     }
+
+    detect_collisions(world); 
 }
 
 void update_physics(GameWorld* world, float delta_time) {
@@ -83,6 +83,10 @@ void update_physics(GameWorld* world, float delta_time) {
 }
 
 void detect_collisions(GameWorld* world) {
+    for (int i = 0; i < world->entity_count; i++) {
+        world->physics_state[i].in_ground = false;
+    }
+
     for (int i = 0; i < world->entity_count; i++) {
         int proxy_id = world->physics_state[i].broadphase_proxy;
         BoundingBox fat_aabb = get_aabb(world->transform[i].position, world->transform[i].orientation,
@@ -130,8 +134,20 @@ void detect_collisions(GameWorld* world) {
         }
     }
 
-    for(int k = 0; k < 8; k++) solve_velocity(world, contacts, contact_count);
+    for (int k = 0; k < 8; k++) solve_velocity(world, contacts, contact_count);
     solve_position(world, contacts, contact_count);
+
+    for (int j = 0; j < contact_count; j++) {
+        Contact* c = &contacts[j];
+    
+        if(c->normal.y > 0.7f) {
+            world->physics_state[c->b_idx].in_ground = true;
+        }
+        
+        if(c->normal.y < -0.7f) {
+            world->physics_state[c->a_idx].in_ground = true;
+        }
+    }
 }
 
 void update_render(GameWorld* world) {
