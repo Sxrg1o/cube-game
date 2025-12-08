@@ -3,9 +3,7 @@
 
 #include "systems.h"
 #include "collisions.h"
-
-#define DAMPING_FACTOR 0.5f
-#define SUB_STEPS 8
+#include "gameplay.h"
 
 static const Vector3 GRAVITY = {0.0f, -9.81f, 0.0f};
 
@@ -143,7 +141,7 @@ void detect_collisions(GameWorld* world) {
         if(c->normal.y > 0.7f) {
             world->physics_state[c->b_idx].in_ground = true;
         }
-        
+
         if(c->normal.y < -0.7f) {
             world->physics_state[c->a_idx].in_ground = true;
         }
@@ -162,5 +160,51 @@ void update_render(GameWorld* world) {
         DrawModel(world->rendering[i].model, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, col);
         DrawModelWires(world->rendering[i].model, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, BLACK);
     }
-    // TODO: Render buttons & arrows for gameplay
+}
+
+void draw_ui(GameWorld* world) {
+    int player_idx = -1;
+    for(int i = 0; i < world->entity_count; i++) {
+        if(world->player_logic[i].is_player) {
+            player_idx = i;
+            break;
+        }
+    }
+    if (player_idx == -1) return;
+
+    PlayerLogicComponent* logic = &world->player_logic[player_idx];
+    const int screenW = GetScreenWidth();
+    const int barWidth = 30;
+    const int barHeight = 150;
+    const int margin = 20;
+    const int padding = 10;
+    int posX_Attract = screenW - margin - barWidth;
+    int posX_Repel = posX_Attract - barWidth - padding;
+    int posY = margin;
+    float pct_repel = logic->energy_repel / MAX_ENERGY;
+    Color color_repel = BLUE;
+
+    if (logic->repel_overheat) color_repel = GRAY;
+
+    DrawRectangle(posX_Repel, posY, barWidth, barHeight, Fade(DARKGRAY, 0.5f));
+    int fillHeight_R = (int)(barHeight * pct_repel);
+    int fillY_R = posY + (barHeight - fillHeight_R);
+    DrawRectangle(posX_Repel, fillY_R, barWidth, fillHeight_R, color_repel);
+    DrawRectangleLines(posX_Repel, posY, barWidth, barHeight, BLACK);
+    DrawText("-", posX_Repel + 8, posY + barHeight + 5, 20, BLACK);
+
+    float pct_attract = logic->energy_attract / MAX_ENERGY;
+    Color color_attract = RED;
+
+    if (logic->attract_overheat) color_attract = GRAY;
+
+    DrawRectangle(posX_Attract, posY, barWidth, barHeight, Fade(DARKGRAY, 0.5f));
+    int fillHeight_A = (int)(barHeight * pct_attract);
+    int fillY_A = posY + (barHeight - fillHeight_A);
+    DrawRectangle(posX_Attract, fillY_A, barWidth, fillHeight_A, color_attract);
+    DrawRectangleLines(posX_Attract, posY, barWidth, barHeight, BLACK);
+    DrawText("+", posX_Attract + 8, posY + barHeight + 5, 20, BLACK);
+
+    if (logic->repel_overheat) DrawText("!", posX_Repel + 10, posY - 20, 20, RED);
+    if (logic->attract_overheat) DrawText("!", posX_Attract + 10, posY - 20, 20, RED);
 }

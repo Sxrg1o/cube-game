@@ -20,9 +20,9 @@ void init_camera() {
 
 void update_camera() {
     float delta_time = GetFrameTime();
-    if(IsKeyDown(KEY_LEFT)) {
+    if(IsKeyDown(KEY_E)) {
         camera_angle -= CAM_AV * delta_time;
-    } else if(IsKeyDown(KEY_RIGHT)) {
+    } else if(IsKeyDown(KEY_Q)) {
         camera_angle += CAM_AV * delta_time;
     }
     if(IsKeyDown(KEY_UP)) {

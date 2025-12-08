@@ -37,6 +37,7 @@ int main(void) {
             update_render(&world);
 
             EndMode3D();
+            draw_ui(&world);
             DrawFPS(10, 10);
         EndDrawing();
     }

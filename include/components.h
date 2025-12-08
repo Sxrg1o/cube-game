@@ -40,16 +40,11 @@ typedef struct {
     } params;
 } CollisionShapeComponent;
 
-typedef enum {
-    STATE_NEUTRAL,
-    STATE_POSITIVE,
-    STATE_NEGATIVE,
-    STATE_COOLDOWN
-} FSMState;
-
 typedef struct {
-    FSMState current_state;
-    float cooldown_timer;
+    float energy_repel;
+    bool repel_overheat;
+    float energy_attract;
+    bool attract_overheat;
     bool is_player;
 } PlayerLogicComponent;
 

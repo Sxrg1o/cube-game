@@ -5,6 +5,7 @@
 #include "state.h"
 #include "world.h"
 #include "aabb.h"
+#include "gameplay.h"
 
 void init_world(GameWorld* world, int max_entities) {
     world->max_entities = max_entities;
@@ -64,6 +65,10 @@ int create_entity(GameWorld* world, EntityDesc desc) {
         if(desc.is_player) {
             world->physics_prop[idx].inertia_tensor = MatrixIdentity();
             world->physics_prop[idx].inverse_inertia_tensor = (Matrix){0};
+            world->player_logic[idx].attract_overheat = false;
+            world->player_logic[idx].repel_overheat = false;
+            world->player_logic[idx].energy_attract = MAX_ENERGY;
+            world->player_logic[idx].energy_repel = MAX_ENERGY;
         } else {
             world->physics_prop[idx].inertia_tensor = calc_inertia_tensor(desc.shape_type, desc.mass, desc.dimentions);
             world->physics_prop[idx].inverse_inertia_tensor = MatrixInvert(world->physics_prop[idx].inertia_tensor);
@@ -101,10 +106,6 @@ int create_entity(GameWorld* world, EntityDesc desc) {
     world->rendering[idx].model = LoadModelFromMesh(mesh);
     world->rendering[idx].model.materials[0].maps[MATERIAL_MAP_DIFFUSE].color = desc.color;
 
-    if (desc.is_player) {
-        world->player_logic[idx].current_state = STATE_NEUTRAL;
-    }
-
     return idx;
 }
 
@@ -130,7 +131,7 @@ void create_scene(GameWorld* world) {
     player.restitution = 0.2f;
     player.shape_type = SHAPE_CUBE;
     player.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
-    player.color = RED;
+    player.color = DARKPURPLE;
     player.is_player = true;
 
     create_entity(world, player);

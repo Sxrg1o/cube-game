@@ -90,11 +90,7 @@ void constrain_player_upright(GameWorld* world) {
     world->transform[player_idx].orientation = upright_q;
 }
 
-static void apply_magnetic_force(GameWorld* world, int player_idx) {
-    int polarity = 0;
-    if (IsKeyDown(KEY_G)) polarity = 1;
-    if (IsKeyDown(KEY_H)) polarity = -1;
-
+static void apply_magnetic_force(GameWorld* world, int player_idx, int polarity) {
     if (polarity == 0) return;
 
     Vector3 player_pos = world->transform[player_idx].position;
@@ -110,17 +106,69 @@ static void apply_magnetic_force(GameWorld* world, int player_idx) {
         if (dist_sq < MAGNET_RADIUS * MAGNET_RADIUS && dist_sq > 0.1f) {
             float dist = sqrtf(dist_sq);
             Vector3 dir = Vector3Scale(diff, 1.0f / dist);
-            float force_mag = MAGNET_FORCE_MAGNITUDE * world->physics_prop[i].mass * (float)polarity;
+            float force_mag = MAGNET_FORCE_MAGNITUDE * world->physics_prop[i].mass;
             
             if (polarity == -1) dir = Vector3Negate(dir); 
 
             world->physics_state[i].force_accumulator = Vector3Add(
                 world->physics_state[i].force_accumulator, 
-                Vector3Scale(dir, fabsf(force_mag))
+                Vector3Scale(dir, force_mag)
             );
         }
     }
 }
+
+static bool update_energy_tank(float* energy, bool* overheated, bool is_using, float dt) {
+    if (is_using && !(*overheated)) {
+        *energy -= dt;
+
+        if (*energy <= 0.0f) {
+            *energy = 0.0f;
+            *overheated = true;
+            return false;
+        }
+
+        return true;
+    } else {
+        *energy += RECHARGE_RATE * dt;
+        if (*energy > MAX_ENERGY) *energy = MAX_ENERGY;
+
+        if (*overheated && *energy >= UNLOCK_THRESHOLD) {
+            *overheated = false;
+        }
+
+        return false;
+    }
+}
+
+static void handle_power(GameWorld* world, int player_idx, float dt) {
+    PlayerLogicComponent* logic = &world->player_logic[player_idx];
+    bool want_attract = IsKeyDown(KEY_G);
+    bool want_repel = IsKeyDown(KEY_H);
+
+    if (want_attract) want_repel = false;
+
+    bool can_attract = update_energy_tank(&logic->energy_attract, &logic->attract_overheat, want_attract, dt);
+    bool can_repel = update_energy_tank(&logic->energy_repel, &logic->repel_overheat, want_repel, dt);
+    Color final_color = DARKPURPLE;
+
+    if (can_attract && want_attract) {
+        apply_magnetic_force(world, player_idx, 1);
+        final_color = RED;
+    } 
+    else if (can_repel && want_repel) {
+        apply_magnetic_force(world, player_idx, -1);
+        final_color = BLUE;
+    }
+
+    if ((want_attract && logic->attract_overheat) || (want_repel && logic->repel_overheat)) {
+        final_color = DARKGRAY; 
+    }
+
+    world->rendering[player_idx].model.materials[0].maps[MATERIAL_MAP_DIFFUSE].color = final_color;
+}
+
+// TODO: Dash? Health? :V
 
 void update_gameplay(GameWorld* world, Camera3D camera, float dt) {
     int player_idx = find_player_index(world);
@@ -129,5 +177,5 @@ void update_gameplay(GameWorld* world, Camera3D camera, float dt) {
     update_player_orientation(world, player_idx, camera);
     update_player_movement(world, player_idx);
     update_player_jump(world, player_idx);
-    apply_magnetic_force(world, player_idx);
+    handle_power(world, player_idx, dt);
 }
