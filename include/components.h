@@ -49,6 +49,7 @@ typedef enum {
 typedef struct {
     FSMState current_state;
     float cooldown_timer;
+    bool in_ground;
 } PlayerLogicComponent;
 
 typedef struct {

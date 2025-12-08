@@ -5,6 +5,7 @@
 #include "state.h"
 #include "world.h"
 #include "systems.h"
+#include "gameplay.h"
 
 int main(void) {
     const int screenWidth = 1600;
@@ -29,6 +30,7 @@ int main(void) {
             else DisableCursor();
         }
         
+        update_gameplay(&world, camera, delta_time);
         update_physics(&world, delta_time);
 
         BeginDrawing();

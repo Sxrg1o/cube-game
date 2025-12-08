@@ -146,4 +146,5 @@ void update_render(GameWorld* world) {
         DrawModel(world->rendering[i].model, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, col);
         DrawModelWires(world->rendering[i].model, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, BLACK);
     }
+    // TODO: Render buttons & arrows for gameplay
 }
