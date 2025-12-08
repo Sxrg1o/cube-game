@@ -1,11 +1,11 @@
 #pragma once
 
-#define AABB_MARGIN 0.2f
-#define NULL_NODE -1
-
 #include <raylib.h>
 
 #include "components.h"
+
+#define AABB_MARGIN 0.2f
+#define NULL_NODE -1
 
 typedef struct {
     BoundingBox aabb;

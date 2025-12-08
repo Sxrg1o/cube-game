@@ -5,7 +5,7 @@
 #include "collisions.h"
 #include "gameplay.h"
 
-static const Vector3 GRAVITY = {0.0f, -9.81f, 0.0f};
+static const Vector3 GRAVITY = {0.0f, -18.0f, 0.0f};
 
 Vector3 Vector3TransformRotate(Vector3 v, Matrix mat) {
     Vector3 result;

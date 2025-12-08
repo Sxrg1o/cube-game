@@ -3,8 +3,8 @@
 #include "state.h"
 #include "components.h"
 
-#define PLAYER_MOVE_SPEED 10.0f
-#define PLAYER_JUMP_FORCE 5.0f
+#define PLAYER_MOVE_SPEED 7.0f
+#define PLAYER_JUMP_FORCE 10.0f
 #define MAGNET_FORCE_MAGNITUDE 100.0f
 #define MAGNET_RADIUS 20.0f
 #define MAX_ENERGY 5.0f

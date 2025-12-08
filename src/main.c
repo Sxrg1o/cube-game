@@ -1,5 +1,4 @@
 #include <raylib.h>
-#include <raymath.h>
 
 #include "camera.h"
 #include "state.h"
@@ -9,7 +8,7 @@
 
 int main(void) {
     const int screenWidth = 1600;
-    const int screenHeight = 900;
+    const int screenHeight = 900; 
 
     InitWindow(screenWidth, screenHeight, "cube");
     

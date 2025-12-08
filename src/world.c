@@ -128,7 +128,7 @@ void create_scene(GameWorld* world) {
     player.position = (Vector3){ 0.0f, 10.0f, 0.0f };
     player.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     player.mass = 10.0f;
-    player.restitution = 0.2f;
+    player.restitution = 0.1f;
     player.shape_type = SHAPE_CUBE;
     player.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
     player.color = DARKPURPLE;
