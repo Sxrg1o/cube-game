@@ -17,6 +17,9 @@ typedef struct {
 typedef struct {
     int entity_count;
     int max_entities;
+    bool* entity_active;
+    int* free_idx;
+    int free_idx_top;
     DynamicTree collision_tree;
 
     TransformComponent* transform;

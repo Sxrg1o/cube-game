@@ -46,6 +46,7 @@ typedef struct {
     float energy_attract;
     bool attract_overheat;
     bool is_player;
+    float dash_cooldown;
 } PlayerLogicComponent;
 
 typedef struct {

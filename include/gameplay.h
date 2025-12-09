@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "state.h"
 #include "components.h"
 
@@ -11,6 +13,22 @@
 #define RECHARGE_TIME 5.0f
 #define RECHARGE_RATE (MAX_ENERGY / RECHARGE_TIME)
 #define UNLOCK_THRESHOLD (MAX_ENERGY * 0.5f)
+#define DASH_FORCE 20.0f
+#define DASH_COOLDOWN 1.0f
 
-void update_gameplay(GameWorld*, Camera3D, float);
-void constrain_player_upright(GameWorld*);
+#define BUTTON_UP (1 << 0)
+#define BUTTON_DOWN (1 << 1)
+#define BUTTON_LEFT (1 << 2)
+#define BUTTON_RIGHT (1 << 3)
+#define BUTTON_JUMP (1 << 4)
+#define BUTTON_ATTRACT (1 << 5)
+#define BUTTON_REPEL (1 << 6)
+#define BUTTON_DASH (1 << 7)
+
+typedef struct {
+    uint8_t buttons;
+    float yaw;
+} PlayerInput;
+
+void update_gameplay(GameWorld*, int, PlayerInput, float);
+void constrain_player_upright(GameWorld*, int);

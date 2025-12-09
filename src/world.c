@@ -10,6 +10,9 @@
 void init_world(GameWorld* world, int max_entities) {
     world->max_entities = max_entities;
     world->entity_count = 0;
+    world->entity_active = (bool*)calloc(max_entities, sizeof(bool));
+    world->free_idx = (int*)calloc(max_entities, sizeof(int));
+    world->free_idx_top = -1;
 
     init_tree(&world->collision_tree, max_entities * 4);
 
@@ -47,10 +50,20 @@ static Matrix calc_inertia_tensor(ShapeType shape_type, float mass, Vector3 dime
     return it;
 }
 
-int create_entity(GameWorld* world, EntityDesc desc) {
-    if(world->entity_count >= world->max_entities) return -1;
-    
-    int idx = world->entity_count++;
+int create_entity(GameWorld* world, EntityDesc desc) {    
+    int idx;
+
+    if(world->free_idx_top >= 0) {
+        idx = world->free_idx[world->free_idx_top--];
+    } else {
+        if(world->entity_count >= world->max_entities) return -1;
+        idx = world->entity_count++;
+    }
+
+    world->entity_active[idx] = true;
+
+    world->physics_state[idx] = (PhysicsStateComponent){0};
+    world->collision[idx] = (CollisionShapeComponent){0};
 
     world->transform[idx].position = desc.position;
     world->transform[idx].orientation = desc.orientation;

@@ -17,6 +17,7 @@ Vector3 Vector3TransformRotate(Vector3 v, Matrix mat) {
 
 static void physics_step(GameWorld* world, float dt) {
     for(int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
         if(world->physics_prop[i].inverse_mass == 0.0f) continue;
 
         Vector3 gravity_force = Vector3Scale(GRAVITY, world->physics_prop[i].mass);
@@ -48,6 +49,7 @@ static void physics_step(GameWorld* world, float dt) {
     }
 
     for(int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
         if(world->physics_prop[i].inverse_mass == 0.0f) continue;
 
         world->transform[i].position = Vector3Add(
@@ -82,10 +84,12 @@ void update_physics(GameWorld* world, float delta_time) {
 
 void detect_collisions(GameWorld* world) {
     for (int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
         world->physics_state[i].in_ground = false;
     }
 
     for (int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
         int proxy_id = world->physics_state[i].broadphase_proxy;
         BoundingBox fat_aabb = get_aabb(world->transform[i].position, world->transform[i].orientation,
             world->collision[i]);
@@ -101,10 +105,11 @@ void detect_collisions(GameWorld* world) {
         }
     }
 
-    Contact contacts[512];
+    Contact contacts[1024];
     int contact_count = 0;
     int candidates[128];
     for (int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
         if (world->physics_prop[i].inverse_mass == 0.0f) continue;
 
         int candidate_count = 0;
@@ -125,8 +130,10 @@ void detect_collisions(GameWorld* world) {
             int points_found = dispatch_collision(world, i, j, batch);
 
             for (int p = 0; p < points_found; p++) {
-                if (contact_count < 512) {
+                if (contact_count < 1024) {
                     contacts[contact_count++] = batch[p];
+                } else {
+                    TraceLog(LOG_WARNING, "MAX CONTACTS REACHED! Physics may glitch.");
                 }
             }
         }
@@ -150,6 +157,7 @@ void detect_collisions(GameWorld* world) {
 
 void update_render(GameWorld* world) {
     for (int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
         Matrix orientation = QuaternionToMatrix(world->transform[i].orientation);
         Matrix translation = MatrixTranslate(world->transform[i].position.x, 
                                             world->transform[i].position.y,
@@ -162,49 +170,57 @@ void update_render(GameWorld* world) {
     }
 }
 
-void draw_ui(GameWorld* world) {
-    int player_idx = -1;
-    for(int i = 0; i < world->entity_count; i++) {
-        if(world->player_logic[i].is_player) {
-            player_idx = i;
-            break;
-        }
-    }
+void draw_ui(GameWorld* world, int player_idx) {
     if (player_idx == -1) return;
 
     PlayerLogicComponent* logic = &world->player_logic[player_idx];
-    const int screenW = GetScreenWidth();
-    const int barWidth = 30;
-    const int barHeight = 150;
+    const int screen_width = GetScreenWidth();
+    const int bar_width = 30;
+    const int bar_height = 150;
     const int margin = 20;
     const int padding = 10;
-    int posX_Attract = screenW - margin - barWidth;
-    int posX_Repel = posX_Attract - barWidth - padding;
+    int posX_Attract = screen_width - margin - bar_width;
+    int posX_Repel   = posX_Attract - bar_width - padding;
+    int posX_Dash    = posX_Repel - bar_width - padding;
     int posY = margin;
-    float pct_repel = logic->energy_repel / MAX_ENERGY;
-    Color color_repel = BLUE;
-
-    if (logic->repel_overheat) color_repel = GRAY;
-
-    DrawRectangle(posX_Repel, posY, barWidth, barHeight, Fade(DARKGRAY, 0.5f));
-    int fillHeight_R = (int)(barHeight * pct_repel);
-    int fillY_R = posY + (barHeight - fillHeight_R);
-    DrawRectangle(posX_Repel, fillY_R, barWidth, fillHeight_R, color_repel);
-    DrawRectangleLines(posX_Repel, posY, barWidth, barHeight, BLACK);
-    DrawText("-", posX_Repel + 8, posY + barHeight + 5, 20, BLACK);
 
     float pct_attract = logic->energy_attract / MAX_ENERGY;
     Color color_attract = RED;
-
     if (logic->attract_overheat) color_attract = GRAY;
 
-    DrawRectangle(posX_Attract, posY, barWidth, barHeight, Fade(DARKGRAY, 0.5f));
-    int fillHeight_A = (int)(barHeight * pct_attract);
-    int fillY_A = posY + (barHeight - fillHeight_A);
-    DrawRectangle(posX_Attract, fillY_A, barWidth, fillHeight_A, color_attract);
-    DrawRectangleLines(posX_Attract, posY, barWidth, barHeight, BLACK);
-    DrawText("+", posX_Attract + 8, posY + barHeight + 5, 20, BLACK);
-
-    if (logic->repel_overheat) DrawText("!", posX_Repel + 10, posY - 20, 20, RED);
+    DrawRectangle(posX_Attract, posY, bar_width, bar_height, Fade(DARKGRAY, 0.5f));
+    int fill_height_A = (int)(bar_height * pct_attract);
+    int fillY_A = posY + (bar_height - fill_height_A);
+    DrawRectangle(posX_Attract, fillY_A, bar_width, fill_height_A, color_attract);
+    DrawRectangleLines(posX_Attract, posY, bar_width, bar_height, BLACK);
+    DrawText("+", posX_Attract + 8, posY + bar_height + 5, 20, BLACK);
     if (logic->attract_overheat) DrawText("!", posX_Attract + 10, posY - 20, 20, RED);
+
+    float pct_repel = logic->energy_repel / MAX_ENERGY;
+    Color color_repel = BLUE;
+    if (logic->repel_overheat) color_repel = GRAY;
+
+    DrawRectangle(posX_Repel, posY, bar_width, bar_height, Fade(DARKGRAY, 0.5f));
+    int fill_height_R = (int)(bar_height * pct_repel);
+    int fillY_R = posY + (bar_height - fill_height_R);
+    DrawRectangle(posX_Repel, fillY_R, bar_width, fill_height_R, color_repel);
+    DrawRectangleLines(posX_Repel, posY, bar_width, bar_height, BLACK);
+    DrawText("-", posX_Repel + 8, posY + bar_height + 5, 20, BLACK);
+    if (logic->repel_overheat) DrawText("!", posX_Repel + 10, posY - 20, 20, RED);
+
+    float pct_dash = 1.0f - (logic->dash_cooldown / DASH_COOLDOWN);
+
+    if (pct_dash < 0.0f) pct_dash = 0.0f;
+    if (pct_dash > 1.0f) pct_dash = 1.0f;
+
+    Color color_dash = LIME; 
+    if (pct_dash < 1.0f) color_dash = ORANGE;
+
+    DrawRectangle(posX_Dash, posY, bar_width, bar_height, Fade(DARKGRAY, 0.5f));
+    int fill_height_D = (int)(bar_height * pct_dash);
+    int fillY_D = posY + (bar_height - fill_height_D);
+    
+    DrawRectangle(posX_Dash, fillY_D, bar_width, fill_height_D, color_dash);
+    DrawRectangleLines(posX_Dash, posY, bar_width, bar_height, BLACK);
+    DrawText("D", posX_Dash + 8, posY + bar_height + 5, 20, BLACK);
 }

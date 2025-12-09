@@ -3,42 +3,12 @@
 
 #include "gameplay.h"
 
-static int find_player_index(GameWorld* world) {
-    for(int i = 0; i < world->entity_count; i++) {
-        if(world->player_logic[i].is_player) return i;
-    }
-    return -1;
-}
-
-static Vector3 get_mouse_ray_position(Camera3D camera) {
-    Ray mouse_ray = GetScreenToWorldRay(GetMousePosition(), camera);
-    
-    if (fabs(mouse_ray.direction.y) < 0.00001f) return (Vector3){0};
-
-    float t = -(mouse_ray.position.y) / mouse_ray.direction.y;
-
-    if(t < 0) return (Vector3){0};
-
-    Vector3 point = Vector3Add(mouse_ray.position, Vector3Scale(mouse_ray.direction, t));
-    return point;
-}
-
-static void update_player_orientation(GameWorld* world, int player_idx, Camera3D camera) {
-    Vector3 target = get_mouse_ray_position(camera);
-    Vector3 player_pos = world->transform[player_idx].position;
-    Vector3 direction = Vector3Subtract(target, player_pos);
-    direction.y = 0; 
-    
-    if (Vector3LengthSqr(direction) < 0.01f) return;
-
-    direction = Vector3Normalize(direction);
-    
-    float angle = atan2f(direction.x, direction.z);
-    Quaternion target_rotation = QuaternionFromAxisAngle((Vector3){0, 1, 0}, angle);
+static void update_player_orientation(GameWorld* world, int player_idx, float yaw) {
+    Quaternion target_rotation = QuaternionFromAxisAngle((Vector3){0, 1, 0}, yaw);
     world->transform[player_idx].orientation = target_rotation;
 }
 
-static void update_player_movement(GameWorld* world, int player_idx) {
+static void update_player_movement(GameWorld* world, int player_idx, PlayerInput input) {
     PhysicsStateComponent* phys = &world->physics_state[player_idx];
     
     if(!phys->in_ground) return; 
@@ -50,10 +20,11 @@ static void update_player_movement(GameWorld* world, int player_idx) {
     right.y = 0;   right = Vector3Normalize(right);
 
     Vector3 target_vel = {0};
-    if (IsKeyDown(KEY_W)) target_vel = Vector3Add(target_vel, forward);
-    if (IsKeyDown(KEY_S)) target_vel = Vector3Subtract(target_vel, forward);
-    if (IsKeyDown(KEY_D)) target_vel = Vector3Add(target_vel, right);
-    if (IsKeyDown(KEY_A)) target_vel = Vector3Subtract(target_vel, right);
+
+    if (input.buttons & BUTTON_UP)    target_vel = Vector3Add(target_vel, forward);
+    if (input.buttons & BUTTON_DOWN)  target_vel = Vector3Subtract(target_vel, forward);
+    if (input.buttons & BUTTON_RIGHT) target_vel = Vector3Add(target_vel, right);
+    if (input.buttons & BUTTON_LEFT)  target_vel = Vector3Subtract(target_vel, right);
 
     if (Vector3LengthSqr(target_vel) > 0.01f) {
         target_vel = Vector3Normalize(target_vel);
@@ -66,17 +37,16 @@ static void update_player_movement(GameWorld* world, int player_idx) {
     }
 }
 
-static void update_player_jump(GameWorld* world, int player_idx) {
+static void update_player_jump(GameWorld* world, int player_idx, PlayerInput input) {
     PhysicsStateComponent* phys = &world->physics_state[player_idx];
-    
-    if (IsKeyPressed(KEY_SPACE) && phys->in_ground) {
+
+    if ((input.buttons & BUTTON_JUMP) && phys->in_ground) {
         phys->linear_velocity.y = PLAYER_JUMP_FORCE;
         phys->in_ground = false;
     }
 }
 
-void constrain_player_upright(GameWorld* world) {
-    int player_idx = find_player_index(world);
+void constrain_player_upright(GameWorld* world, int player_idx) {
     if (player_idx == -1) return;
 
     Quaternion q = world->transform[player_idx].orientation;
@@ -96,6 +66,7 @@ static void apply_magnetic_force(GameWorld* world, int player_idx, int polarity)
     Vector3 player_pos = world->transform[player_idx].position;
 
     for (int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
         if (i == player_idx) continue;
         if (world->physics_prop[i].inverse_mass == 0.0f) continue;
 
@@ -141,10 +112,11 @@ static bool update_energy_tank(float* energy, bool* overheated, bool is_using, f
     }
 }
 
-static void handle_power(GameWorld* world, int player_idx, float dt) {
+static void handle_power(GameWorld* world, int player_idx, PlayerInput input, float dt) {
     PlayerLogicComponent* logic = &world->player_logic[player_idx];
-    bool want_attract = IsKeyDown(KEY_G);
-    bool want_repel = IsKeyDown(KEY_H);
+    
+    bool want_attract = (input.buttons & BUTTON_ATTRACT);
+    bool want_repel   = (input.buttons & BUTTON_REPEL);
 
     if (want_attract) want_repel = false;
 
@@ -168,14 +140,32 @@ static void handle_power(GameWorld* world, int player_idx, float dt) {
     world->rendering[player_idx].model.materials[0].maps[MATERIAL_MAP_DIFFUSE].color = final_color;
 }
 
-// TODO: Dash? Health? :V
+static void update_player_dash(GameWorld* world, int player_idx, PlayerInput input, float dt) {
+    PlayerLogicComponent* logic = &world->player_logic[player_idx];
+    PhysicsStateComponent* phys = &world->physics_state[player_idx];
 
-void update_gameplay(GameWorld* world, Camera3D camera, float dt) {
-    int player_idx = find_player_index(world);
+    if (logic->dash_cooldown > 0.0f) {
+        logic->dash_cooldown -= dt;
+    }
+
+    if ((input.buttons & BUTTON_DASH) && logic->dash_cooldown <= 0.0f) {
+        Quaternion q = world->transform[player_idx].orientation;
+        Vector3 forward = Vector3RotateByQuaternion((Vector3){0, 0, 1}, q);
+        forward.y = 0;
+        forward = Vector3Normalize(forward);
+        phys->linear_velocity = Vector3Add(phys->linear_velocity, Vector3Scale(forward, DASH_FORCE));
+        phys->linear_velocity.y = 2.0f; 
+        phys->in_ground = false;
+        logic->dash_cooldown = DASH_COOLDOWN;
+    }
+}
+
+void update_gameplay(GameWorld* world, int player_idx, PlayerInput input, float dt) {
     if (player_idx == -1) return;
 
-    update_player_orientation(world, player_idx, camera);
-    update_player_movement(world, player_idx);
-    update_player_jump(world, player_idx);
-    handle_power(world, player_idx, dt);
+    update_player_orientation(world, player_idx, input.yaw);
+    update_player_movement(world, player_idx, input);
+    update_player_jump(world, player_idx, input);
+    handle_power(world, player_idx, input, dt);
+    update_player_dash(world, player_idx, input, dt);
 }
