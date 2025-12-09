@@ -1,7 +1,6 @@
 #pragma once
 
 #include "components.h"
-#include "aabb.h"
 
 typedef struct {
     Vector3 position;
@@ -20,7 +19,6 @@ typedef struct {
     bool* entity_active;
     int* free_idx;
     int free_idx_top;
-    DynamicTree collision_tree;
 
     TransformComponent* transform;
     PhysicsStateComponent* physics_state;

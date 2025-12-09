@@ -82,76 +82,87 @@ void update_physics(GameWorld* world, float delta_time) {
     }
 }
 
+static BoundingBox get_aabb(Vector3 position, Quaternion orientation, CollisionShapeComponent sh_ex) {
+    BoundingBox aabb;
+    Vector3 extents = {0};
+
+    Vector3 right = Vector3RotateByQuaternion((Vector3){1,0,0}, orientation);
+    Vector3 up    = Vector3RotateByQuaternion((Vector3){0,1,0}, orientation);
+    Vector3 fwd   = Vector3RotateByQuaternion((Vector3){0,0,1}, orientation);
+
+    switch(sh_ex.type) {
+        case SHAPE_SPHERE: {
+            float r = sh_ex.params.sphere_radius;
+            extents = (Vector3){r, r, r};
+            break;
+        }
+        case SHAPE_CUBE: {
+            Vector3 local_ext = sh_ex.params.cube_extents;
+            extents.x = fabsf(right.x) * local_ext.x + fabsf(up.x) * local_ext.y + fabsf(fwd.x) * local_ext.z;
+            extents.y = fabsf(right.y) * local_ext.x + fabsf(up.y) * local_ext.y + fabsf(fwd.y) * local_ext.z;
+            extents.z = fabsf(right.z) * local_ext.x + fabsf(up.z) * local_ext.y + fabsf(fwd.z) * local_ext.z;
+            break;
+        }
+        case SHAPE_PLANE: {
+            extents = (Vector3){500.0f, 1.0f, 500.0f};
+            break;
+        }
+    }
+    
+    aabb.max = Vector3Add(position, extents);
+    aabb.min = Vector3Subtract(position, extents);
+    return aabb;
+}
+
 void detect_collisions(GameWorld* world) {
     for (int i = 0; i < world->entity_count; i++) {
         if (!world->entity_active[i]) continue;
         world->physics_state[i].in_ground = false;
     }
 
-    for (int i = 0; i < world->entity_count; i++) {
+    BoundingBox aabbs[1024]; 
+    
+    for(int i = 0; i < world->entity_count; i++) {
         if (!world->entity_active[i]) continue;
-        int proxy_id = world->physics_state[i].broadphase_proxy;
-        BoundingBox fat_aabb = get_aabb(world->transform[i].position, world->transform[i].orientation,
-            world->collision[i]);
-
-        if (proxy_id == -1) {
-            world->physics_state[i].broadphase_proxy = insert_leaf(&world->collision_tree, i, fat_aabb);
-        } else {
-            BoundingBox current_node_aabb = world->collision_tree.nodes[proxy_id].aabb;
-            if (!contains_box(current_node_aabb, fat_aabb)) {
-                remove_leaf(&world->collision_tree, proxy_id);
-                world->physics_state[i].broadphase_proxy = insert_leaf(&world->collision_tree, i, fat_aabb);
-            }
-        }
+        aabbs[i] = get_aabb(world->transform[i].position, world->transform[i].orientation, world->collision[i]);
     }
 
-    Contact contacts[1024];
+    Contact contacts[2048];
     int contact_count = 0;
-    int candidates[128];
-    for (int i = 0; i < world->entity_count; i++) {
+
+    for(int i = 0; i < world->entity_count; i++) {
         if (!world->entity_active[i]) continue;
-        if (world->physics_prop[i].inverse_mass == 0.0f) continue;
-
-        int candidate_count = 0;
-        BoundingBox query_box = get_aabb(world->transform[i].position, world->transform[i].orientation,
-            world->collision[i]);
         
-        query_tree(&world->collision_tree, world->collision_tree.root, query_box, candidates, &candidate_count);
+        for(int j = i + 1; j < world->entity_count; j++) {
+            if (!world->entity_active[j]) continue;
 
-        for (int k = 0; k < candidate_count; k++) {
-            int j = candidates[k];
+            if(world->physics_prop[i].inverse_mass == 0.0f && 
+               world->physics_prop[j].inverse_mass == 0.0f) {
+                continue;
+            }
 
-            if (i == j) continue;
-            if (world->physics_prop[j].inverse_mass != 0.0f) {
-                if (i > j) continue; 
+            if (!CheckCollisionBoxes(aabbs[i], aabbs[j])) { 
+                continue; 
             }
 
             Contact batch[4]; 
             int points_found = dispatch_collision(world, i, j, batch);
 
-            for (int p = 0; p < points_found; p++) {
-                if (contact_count < 1024) {
-                    contacts[contact_count++] = batch[p];
-                } else {
-                    TraceLog(LOG_WARNING, "MAX CONTACTS REACHED! Physics may glitch.");
+            for(int k = 0; k < points_found; k++) {
+                if(contact_count < 2048) {
+                    contacts[contact_count++] = batch[k];
                 }
             }
         }
     }
 
-    for (int k = 0; k < 8; k++) solve_velocity(world, contacts, contact_count);
+    for(int k = 0; k < 8; k++) solve_velocity(world, contacts, contact_count);
     solve_position(world, contacts, contact_count);
 
     for (int j = 0; j < contact_count; j++) {
         Contact* c = &contacts[j];
-    
-        if(c->normal.y > 0.7f) {
-            world->physics_state[c->b_idx].in_ground = true;
-        }
-
-        if(c->normal.y < -0.7f) {
-            world->physics_state[c->a_idx].in_ground = true;
-        }
+        if(c->normal.y > 0.7f) world->physics_state[c->b_idx].in_ground = true;
+        if(c->normal.y < -0.7f) world->physics_state[c->a_idx].in_ground = true;
     }
 
     // TODO: Collision buffer (if too strong) and use it in gameplay.c for damage :P

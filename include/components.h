@@ -13,7 +13,6 @@ typedef struct {
     Vector3 force_accumulator;
     Vector3 torque_accumulator;
     Matrix inverse_inertia_tensor_world;
-    int broadphase_proxy;
     bool in_ground;
 } PhysicsStateComponent;
 

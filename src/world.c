@@ -4,7 +4,6 @@
 
 #include "state.h"
 #include "world.h"
-#include "aabb.h"
 #include "gameplay.h"
 
 void init_world(GameWorld* world, int max_entities) {
@@ -13,8 +12,6 @@ void init_world(GameWorld* world, int max_entities) {
     world->entity_active = (bool*)calloc(max_entities, sizeof(bool));
     world->free_idx = (int*)calloc(max_entities, sizeof(int));
     world->free_idx_top = -1;
-
-    init_tree(&world->collision_tree, max_entities * 4);
 
     world->transform = (TransformComponent*)calloc(max_entities, sizeof(TransformComponent));
     world->physics_state = (PhysicsStateComponent*)calloc(max_entities, sizeof(PhysicsStateComponent));
@@ -69,7 +66,6 @@ int create_entity(GameWorld* world, EntityDesc desc) {
     world->transform[idx].orientation = desc.orientation;
     world->physics_prop[idx].mass = desc.mass;
     world->physics_prop[idx].restitution = desc.restitution;
-    world->physics_state[idx].broadphase_proxy = -1;
     world->physics_state[idx].in_ground = false;
     world->player_logic[idx].is_player = desc.is_player;
 
@@ -135,7 +131,6 @@ void create_scene(GameWorld* world) {
     ground.dimentions = (Vector3){ 20.0f, 1.0f, 20.0f };
     ground.color = GRAY;
     ground.is_player = false;
-
     create_entity(world, ground);
 
     // Player
@@ -148,7 +143,6 @@ void create_scene(GameWorld* world) {
     player.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
     player.color = DARKPURPLE;
     player.is_player = true;
-
     create_entity(world, player);
     
     // Sphere
@@ -162,7 +156,18 @@ void create_scene(GameWorld* world) {
     ball.color = BLUE;
     ball.is_player = false;
     create_entity(world, ball);
-    
+
+    EntityDesc cube = {0};
+    cube.position = (Vector3){ 0.0f, 10.0f, 5.0f };
+    cube.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
+    cube.mass = 10.0f;
+    cube.restitution = 0.2f;
+    cube.shape_type = SHAPE_CUBE;
+    cube.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
+    cube.color = GREEN;
+    cube.is_player = false;
+    create_entity(world, cube);
+
 }
 
 void destroy_entity(GameWorld* world, int idx) {
@@ -176,12 +181,6 @@ void destroy_entity(GameWorld* world, int idx) {
         world->rendering[idx].model = (Model){0};
     }
 
-    int proxy = world->physics_state[idx].broadphase_proxy;
-    if (proxy != -1) {
-        remove_leaf(&world->collision_tree, proxy);
-        world->physics_state[idx].broadphase_proxy = -1;
-    }
-
     world->free_idx[++world->free_idx_top] = idx;
 }
 
@@ -192,7 +191,6 @@ void free_world(GameWorld* world) {
         if (world->entity_active[i]) UnloadModel(world->rendering[i].model);
     }
 
-    free_tree(&world->collision_tree);
     free(world->entity_active);
     free(world->free_idx);
     free(world->transform);
