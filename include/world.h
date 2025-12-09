@@ -5,4 +5,5 @@
 void init_world(GameWorld*, int);
 int create_entity(GameWorld*, EntityDesc);
 void create_scene(GameWorld*);
+void destroy_entity(GameWorld*, int);
 void free_world(GameWorld*);

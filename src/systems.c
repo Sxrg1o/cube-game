@@ -153,6 +153,8 @@ void detect_collisions(GameWorld* world) {
             world->physics_state[c->a_idx].in_ground = true;
         }
     }
+
+    // TODO: Collision buffer (if too strong) and use it in gameplay.c for damage :P
 }
 
 void update_render(GameWorld* world) {

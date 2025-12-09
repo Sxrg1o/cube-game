@@ -82,6 +82,8 @@ int create_entity(GameWorld* world, EntityDesc desc) {
             world->player_logic[idx].repel_overheat = false;
             world->player_logic[idx].energy_attract = MAX_ENERGY;
             world->player_logic[idx].energy_repel = MAX_ENERGY;
+            world->player_logic[idx].dash_cooldown = 0.0f;
+            world->player_logic[idx].health = 100.0f;
         } else {
             world->physics_prop[idx].inertia_tensor = calc_inertia_tensor(desc.shape_type, desc.mass, desc.dimentions);
             world->physics_prop[idx].inverse_inertia_tensor = MatrixInvert(world->physics_prop[idx].inertia_tensor);
@@ -163,14 +165,36 @@ void create_scene(GameWorld* world) {
     
 }
 
+void destroy_entity(GameWorld* world, int idx) {
+    if (idx < 0 || idx >= world->max_entities) return;
+    if (!world->entity_active[idx]) return;
+
+    world->entity_active[idx] = false;
+
+    if (world->rendering[idx].model.meshes) {
+        UnloadModel(world->rendering[idx].model);
+        world->rendering[idx].model = (Model){0};
+    }
+
+    int proxy = world->physics_state[idx].broadphase_proxy;
+    if (proxy != -1) {
+        remove_leaf(&world->collision_tree, proxy);
+        world->physics_state[idx].broadphase_proxy = -1;
+    }
+
+    world->free_idx[++world->free_idx_top] = idx;
+}
+
 void free_world(GameWorld* world) {
     if(!world) return;
 
     for (int i = 0; i < world->entity_count; i++) {
-        UnloadModel(world->rendering[i].model); 
+        if (world->entity_active[i]) UnloadModel(world->rendering[i].model);
     }
 
     free_tree(&world->collision_tree);
+    free(world->entity_active);
+    free(world->free_idx);
     free(world->transform);
     free(world->physics_prop);
     free(world->physics_state);
