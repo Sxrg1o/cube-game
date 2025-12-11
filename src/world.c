@@ -19,6 +19,10 @@ void init_world(GameWorld* world, int max_entities) {
     world->collision = (CollisionShapeComponent*)calloc(max_entities, sizeof(CollisionShapeComponent));
     world->rendering = (RenderComponent*)calloc(max_entities, sizeof(RenderComponent));
     world->player_logic = (PlayerLogicComponent*)calloc(max_entities, sizeof(PlayerLogicComponent));
+
+    world->max_collision_events = 128;
+    world->collision_events = (CollisionEvent*)calloc(world->max_collision_events, sizeof(CollisionEvent));
+    world->collision_event_count = 0;
 }
 
 static Matrix calc_inertia_tensor(ShapeType shape_type, float mass, Vector3 dimentions) {
@@ -199,4 +203,5 @@ void free_world(GameWorld* world) {
     free(world->collision);
     free(world->rendering);
     free(world->player_logic);
+    free(world->collision_events);
 }

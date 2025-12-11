@@ -5,7 +5,8 @@
 #include "collisions.h"
 #include "gameplay.h"
 
-static const Vector3 GRAVITY = {0.0f, -18.0f, 0.0f};
+#define GRAVITY_FORCE -18.0f
+static const Vector3 GRAVITY = {0.0f, GRAVITY_FORCE, 0.0f};
 
 Vector3 Vector3TransformRotate(Vector3 v, Matrix mat) {
     Vector3 result;
@@ -115,6 +116,7 @@ static BoundingBox get_aabb(Vector3 position, Quaternion orientation, CollisionS
 }
 
 void detect_collisions(GameWorld* world) {
+    world->collision_event_count = 0;
     for (int i = 0; i < world->entity_count; i++) {
         if (!world->entity_active[i]) continue;
         world->physics_state[i].in_ground = false;
@@ -163,9 +165,27 @@ void detect_collisions(GameWorld* world) {
         Contact* c = &contacts[j];
         if(c->normal.y > 0.7f) world->physics_state[c->b_idx].in_ground = true;
         if(c->normal.y < -0.7f) world->physics_state[c->a_idx].in_ground = true;
-    }
 
-    // TODO: Collision buffer (if too strong) and use it in gameplay.c for damage :P
+        float inv_mass_a = world->physics_prop[c->a_idx].inverse_mass;
+        float inv_mass_b = world->physics_prop[c->b_idx].inverse_mass;
+        float sum_inv_mass = inv_mass_a + inv_mass_b;
+
+        if (sum_inv_mass <= 0.00001f) continue;
+
+        float reduced_mass = 1.0f / sum_inv_mass;
+        float impulse = c->acc_normal_impulse;
+        float impact_energy = (impulse * impulse) / (2.0f * reduced_mass);
+
+        if(impact_energy > DAMAGE_THRESHOLD && 
+        (world->player_logic[c->a_idx].is_player || world->player_logic[c->b_idx].is_player) &&
+        world->collision_event_count < world->max_collision_events) 
+        {
+            int idx = world->collision_event_count++;
+            world->collision_events[idx].entity_a = c->a_idx;
+            world->collision_events[idx].entity_b = c->b_idx;
+            world->collision_events[idx].force = impact_energy;
+        }
+    }
 }
 
 void update_render(GameWorld* world) {

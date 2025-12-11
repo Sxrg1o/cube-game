@@ -486,6 +486,7 @@ void solve_velocity(GameWorld* world, Contact* contacts, int contact_count) {
                         Vector3DotProduct(Vector3CrossProduct(term_b, r_b), contacts[i].normal);
 
             normal_impulse_mag = num / den;
+            contacts[i].acc_normal_impulse = normal_impulse_mag;
             Vector3 impulse_vec = Vector3Scale(contacts[i].normal, normal_impulse_mag);
 
             world->physics_state[idxA].linear_velocity = Vector3Subtract(world->physics_state[idxA].linear_velocity, 

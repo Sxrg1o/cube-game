@@ -16,6 +16,9 @@
 #define DASH_FORCE 20.0f
 #define DASH_COOLDOWN 1.0f
 
+#define DAMAGE_THRESHOLD 20.0f
+#define DAMAGE_FACTOR 0.1f
+
 #define BUTTON_UP (1 << 0)
 #define BUTTON_DOWN (1 << 1)
 #define BUTTON_LEFT (1 << 2)

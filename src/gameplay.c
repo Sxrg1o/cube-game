@@ -1,6 +1,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#include "state.h"
 #include "gameplay.h"
 
 static void update_player_orientation(GameWorld* world, int player_idx, float yaw) {
@@ -160,6 +161,19 @@ static void update_player_dash(GameWorld* world, int player_idx, PlayerInput inp
     }
 }
 
+static void handle_collision_damage(GameWorld* world) {
+    for (int i = 0; i < world->collision_event_count; i++) {
+        CollisionEvent* event = &world->collision_events[i];
+        
+        if (event->force > DAMAGE_THRESHOLD) {
+            float damage = (event->force - DAMAGE_THRESHOLD) * DAMAGE_FACTOR;
+            world->player_logic[event->entity_a].health -= damage;
+            world->player_logic[event->entity_b].health -= damage;
+            if (world->player_logic[event->entity_a].is_player) TraceLog(LOG_INFO, "OUCH! Damage: %.2f", damage);
+        }
+    }
+}
+
 void update_gameplay(GameWorld* world, int player_idx, PlayerInput input, float dt) {
     if (player_idx == -1) return;
 
@@ -168,4 +182,5 @@ void update_gameplay(GameWorld* world, int player_idx, PlayerInput input, float 
     update_player_jump(world, player_idx, input);
     handle_power(world, player_idx, input, dt);
     update_player_dash(world, player_idx, input, dt);
+    handle_collision_damage(world);
 }
