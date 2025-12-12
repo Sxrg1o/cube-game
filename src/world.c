@@ -51,7 +51,7 @@ static Matrix calc_inertia_tensor(ShapeType shape_type, float mass, Vector3 dime
     return it;
 }
 
-int create_entity(GameWorld* world, EntityDesc desc) {    
+int create_entity(GameWorld* world, EntityDesc desc, GameConfig* config) {    
     int idx;
 
     if(world->free_idx_top >= 0) {
@@ -80,10 +80,15 @@ int create_entity(GameWorld* world, EntityDesc desc) {
             world->physics_prop[idx].inverse_inertia_tensor = (Matrix){0};
             world->player_logic[idx].attract_overheat = false;
             world->player_logic[idx].repel_overheat = false;
-            world->player_logic[idx].energy_attract = MAX_ENERGY;
-            world->player_logic[idx].energy_repel = MAX_ENERGY;
             world->player_logic[idx].dash_cooldown = 0.0f;
-            world->player_logic[idx].health = 100.0f;
+
+            float initial_energy = config ? config->max_energy : MAX_ENERGY_DEFAULT;
+            float initial_health = config ? config->total_health : TOTAL_HEALTH_DEFAULT;
+
+            world->player_logic[idx].energy_attract = initial_energy;
+            world->player_logic[idx].energy_repel = initial_energy;
+            world->player_logic[idx].health = initial_health;
+
         } else {
             world->physics_prop[idx].inertia_tensor = calc_inertia_tensor(desc.shape_type, desc.mass, desc.dimentions);
             world->physics_prop[idx].inverse_inertia_tensor = MatrixInvert(world->physics_prop[idx].inertia_tensor);
@@ -102,14 +107,14 @@ int create_entity(GameWorld* world, EntityDesc desc) {
             world->collision[idx].type = SHAPE_CUBE;
             world->collision[idx].params.cube_extents = Vector3Scale(desc.dimentions, 0.5f);
             // Test
-            if(idx != 0) world->physics_state[idx].angular_velocity = (Vector3){5.0f, 0.0f, 0.0f};
+            if(idx != 0 && !desc.is_player) world->physics_state[idx].angular_velocity = (Vector3){5.0f, 0.0f, 0.0f};
             break;
         case SHAPE_SPHERE:
             mesh = GenMeshSphere(desc.dimentions.x, 16, 16);
             world->collision[idx].type = SHAPE_SPHERE;
             world->collision[idx].params.sphere_radius = desc.dimentions.x;
             // Test
-            world->physics_state[idx].linear_velocity = (Vector3){-5.0f, 0.0f, 0.0f};
+            if (!desc.is_player) world->physics_state[idx].linear_velocity = (Vector3){-5.0f, 0.0f, 0.0f};
             break;
         case SHAPE_PLANE:
             mesh = GenMeshPlane(desc.dimentions.x, desc.dimentions.z, 1, 1);
@@ -124,30 +129,35 @@ int create_entity(GameWorld* world, EntityDesc desc) {
     return idx;
 }
 
-void create_scene(GameWorld* world) {
-    // Floor
+void create_scene(GameWorld* world, GameConfig* config) {
+    // Ground
+    float platform_x = config ? config->main_platform_size.x : PLATFORM_X_DEFAULT;
+    float platform_z = config ? config->main_platform_size.y : PLATFORM_Y_DEFAULT;
+
     EntityDesc ground = {0};
     ground.position = (Vector3){ 0.0f, -0.5f, 0.0f };
     ground.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     ground.mass = 0.0f;
     ground.restitution = 0.9f;
     ground.shape_type = SHAPE_CUBE;
-    ground.dimentions = (Vector3){ 20.0f, 1.0f, 20.0f };
+    ground.dimentions = (Vector3){ platform_x, 1.0f, platform_z };
     ground.color = GRAY;
     ground.is_player = false;
-    create_entity(world, ground);
+    create_entity(world, ground, config);
 
     // Player
+    float player_sz = config ? config->player_size : PLAYER_SIZE_DEFAULT;
+
     EntityDesc player = {0};
     player.position = (Vector3){ 0.0f, 10.0f, 0.0f };
     player.orientation = (Quaternion){ 0.0f, 0.0f, 0.0f, 1.0f };
     player.mass = 10.0f;
     player.restitution = 0.1f;
     player.shape_type = SHAPE_CUBE;
-    player.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
+    player.dimentions = (Vector3){ player_sz, player_sz, player_sz };
     player.color = DARKPURPLE;
     player.is_player = true;
-    create_entity(world, player);
+    create_entity(world, player, config);
     
     // Sphere
     EntityDesc ball = {0};
@@ -159,7 +169,7 @@ void create_scene(GameWorld* world) {
     ball.dimentions = (Vector3){ 1.0f, 0.0f, 0.0f };
     ball.color = BLUE;
     ball.is_player = false;
-    create_entity(world, ball);
+    create_entity(world, ball, config);
 
     EntityDesc cube = {0};
     cube.position = (Vector3){ 0.0f, 10.0f, 5.0f };
@@ -170,8 +180,7 @@ void create_scene(GameWorld* world) {
     cube.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
     cube.color = GREEN;
     cube.is_player = false;
-    create_entity(world, cube);
-
+    create_entity(world, cube, config);
 }
 
 void destroy_entity(GameWorld* world, int idx) {

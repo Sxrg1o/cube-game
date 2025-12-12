@@ -2,6 +2,66 @@
 
 #include "components.h"
 
+#define PLAYER_MOVE_SPEED_MIN 4.0f
+#define PLAYER_MOVE_SPEED_DEFAULT 7.0f
+#define PLAYER_MOVE_SPEED_MAX 15.0f
+
+#define PLAYER_JUMP_FORCE_MIN 5.0f
+#define PLAYER_JUMP_FORCE_DEFAULT 10.0f
+#define PLAYER_JUMP_FORCE_MAX 20.0f
+
+#define MAGNET_FORCE_MIN 100.0f
+#define MAGNET_FORCE_DEFAULT 200.0f
+#define MAGNET_FORCE_MAX 400.0f
+
+#define MAGNET_RADIUS_MIN 5.0f
+#define MAGNET_RADIUS_DEFAULT 20.0f
+#define MAGNET_RADIUS_MAX 50.0f
+
+#define MAX_ENERGY_MIN 2.0f
+#define MAX_ENERGY_DEFAULT 5.0f
+#define MAX_ENERGY_MAX 10.0f
+
+#define RECHARGE_TIME_MIN 2.0f
+#define RECHARGE_TIME_DEFAULT 5.0f
+#define RECHARGE_TIME_MAX 10.0f
+
+#define DASH_FORCE_MIN 10.0f
+#define DASH_FORCE_DEFAULT 20.0f
+#define DASH_FORCE_MAX 30.0f
+
+#define DASH_COOLDOWN_MIN 1.0f
+#define DASH_COOLDOWN_DEFAULT 1.0f
+#define DASH_COOLDOWN_MAX 5.0f
+
+#define TOTAL_HEALTH_MIN 100.0f
+#define TOTAL_HEALTH_DEFAULT 200.0f
+#define TOTAL_HEALTH_MAX 1000.0f
+
+#define GRAVITY_FORCE_MIN 5.0f
+#define GRAVITY_FORCE_DEFAULT 18.0f
+#define GRAVITY_FORCE_MAX 30.0f
+
+#define PLATFORM_X_MIN 20.0f
+#define PLATFORM_X_DEFAULT 20.0f
+#define PLATFORM_X_MAX 50.0f
+
+#define PLATFORM_Y_MIN 20.0f
+#define PLATFORM_Y_DEFAULT 20.0f
+#define PLATFORM_Y_MAX 50.0f
+
+#define PLAYER_SIZE_MIN 1.0f
+#define PLAYER_SIZE_DEFAULT 2.0f
+#define PLAYER_SIZE_MAX 4.0f
+
+#define MATCH_DURATION_MIN 3
+#define MATCH_DURATION_DEFAULT 3
+#define MATCH_DURATION_MAX 8
+
+#define ROUNDS_MIN 1
+#define ROUNDS_DEFAULT 3
+#define ROUNDS_MAX 10
+
 typedef struct {
     Vector3 position;
     Quaternion orientation;
@@ -40,6 +100,7 @@ typedef struct {
 
 typedef enum {
     MENU,
+    LOBBY,
     PLAYING
 } GameState;
 
@@ -56,6 +117,8 @@ typedef struct {
     float gravity_force;
     Vector2 main_platform_size;
     float player_size;
+    float match_duration;
+    int rounds;
 } GameConfig;
 
 typedef struct {

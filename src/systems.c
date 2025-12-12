@@ -5,9 +5,6 @@
 #include "collisions.h"
 #include "gameplay.h"
 
-#define GRAVITY_FORCE -18.0f
-static const Vector3 GRAVITY = {0.0f, GRAVITY_FORCE, 0.0f};
-
 Vector3 Vector3TransformRotate(Vector3 v, Matrix mat) {
     Vector3 result;
     result.x = v.x * mat.m0 + v.y * mat.m4 + v.z * mat.m8;
@@ -16,12 +13,12 @@ Vector3 Vector3TransformRotate(Vector3 v, Matrix mat) {
     return result;
 }
 
-static void physics_step(GameWorld* world, float dt) {
+static void physics_step(GameWorld* world, float dt, Vector3 gravity) {
     for(int i = 0; i < world->entity_count; i++) {
         if (!world->entity_active[i]) continue;
         if(world->physics_prop[i].inverse_mass == 0.0f) continue;
 
-        Vector3 gravity_force = Vector3Scale(GRAVITY, world->physics_prop[i].mass);
+        Vector3 gravity_force = Vector3Scale(gravity, world->physics_prop[i].mass);
         world->physics_state[i].force_accumulator = Vector3Add(world->physics_state[i].force_accumulator, gravity_force);
 
         Vector3 lin_acc = Vector3Scale(world->physics_state[i].force_accumulator, world->physics_prop[i].inverse_mass);
@@ -75,11 +72,13 @@ static void physics_step(GameWorld* world, float dt) {
     detect_collisions(world); 
 }
 
-void update_physics(GameWorld* world, float delta_time) {
+void update_physics(GameWorld* world, float delta_time, GameConfig* config) {
     float sub_dt = delta_time / (float)SUB_STEPS;
+    float g_force = config ? config->gravity_force : GRAVITY_FORCE_DEFAULT;
+    Vector3 current_gravity = { 0.0f, -fabsf(g_force), 0.0f };
     
     for(int s = 0; s < SUB_STEPS; s++) {
-        physics_step(world, sub_dt);
+        physics_step(world, sub_dt, current_gravity);
     }
 }
 
@@ -203,10 +202,12 @@ void update_render(GameWorld* world) {
     }
 }
 
-void draw_ui(GameWorld* world, int player_idx) {
+void draw_hud(GameWorld* world, int player_idx, GameConfig* config) {
     if (player_idx == -1) return;
 
     PlayerLogicComponent* logic = &world->player_logic[player_idx];
+    float max_energy = config ? config->max_energy : MAX_ENERGY_DEFAULT;
+    float dash_cd_max = config ? config->dash_cooldown : DASH_COOLDOWN_DEFAULT;
     const int screen_width = GetScreenWidth();
     const int bar_width = 30;
     const int bar_height = 150;
@@ -217,7 +218,7 @@ void draw_ui(GameWorld* world, int player_idx) {
     int posX_Dash    = posX_Repel - bar_width - padding;
     int posY = margin;
 
-    float pct_attract = logic->energy_attract / MAX_ENERGY;
+    float pct_attract = logic->energy_attract / max_energy;
     Color color_attract = RED;
     if (logic->attract_overheat) color_attract = GRAY;
 
@@ -229,7 +230,7 @@ void draw_ui(GameWorld* world, int player_idx) {
     DrawText("+", posX_Attract + 8, posY + bar_height + 5, 20, BLACK);
     if (logic->attract_overheat) DrawText("!", posX_Attract + 10, posY - 20, 20, RED);
 
-    float pct_repel = logic->energy_repel / MAX_ENERGY;
+    float pct_repel = logic->energy_repel / max_energy;
     Color color_repel = BLUE;
     if (logic->repel_overheat) color_repel = GRAY;
 
@@ -241,7 +242,7 @@ void draw_ui(GameWorld* world, int player_idx) {
     DrawText("-", posX_Repel + 8, posY + bar_height + 5, 20, BLACK);
     if (logic->repel_overheat) DrawText("!", posX_Repel + 10, posY - 20, 20, RED);
 
-    float pct_dash = 1.0f - (logic->dash_cooldown / DASH_COOLDOWN);
+    float pct_dash = 1.0f - (logic->dash_cooldown / dash_cd_max);
 
     if (pct_dash < 0.0f) pct_dash = 0.0f;
     if (pct_dash > 1.0f) pct_dash = 1.0f;

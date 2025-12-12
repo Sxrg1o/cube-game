@@ -9,7 +9,7 @@ static void update_player_orientation(GameWorld* world, int player_idx, float ya
     world->transform[player_idx].orientation = target_rotation;
 }
 
-static void update_player_movement(GameWorld* world, int player_idx, PlayerInput input) {
+static void update_player_movement(GameWorld* world, int player_idx, PlayerInput input, GameConfig* config) {
     PhysicsStateComponent* phys = &world->physics_state[player_idx];
     
     if(!phys->in_ground) return; 
@@ -27,9 +27,11 @@ static void update_player_movement(GameWorld* world, int player_idx, PlayerInput
     if (input.buttons & BUTTON_RIGHT) target_vel = Vector3Add(target_vel, right);
     if (input.buttons & BUTTON_LEFT)  target_vel = Vector3Subtract(target_vel, right);
 
+    float move_speed = config ? config->player_move_speed : PLAYER_MOVE_SPEED_DEFAULT;
+
     if (Vector3LengthSqr(target_vel) > 0.01f) {
         target_vel = Vector3Normalize(target_vel);
-        target_vel = Vector3Scale(target_vel, PLAYER_MOVE_SPEED);
+        target_vel = Vector3Scale(target_vel, move_speed);
         phys->linear_velocity.x = target_vel.x;
         phys->linear_velocity.z = target_vel.z;
     } else {
@@ -38,11 +40,12 @@ static void update_player_movement(GameWorld* world, int player_idx, PlayerInput
     }
 }
 
-static void update_player_jump(GameWorld* world, int player_idx, PlayerInput input) {
+static void update_player_jump(GameWorld* world, int player_idx, PlayerInput input, GameConfig* config) {
     PhysicsStateComponent* phys = &world->physics_state[player_idx];
 
     if ((input.buttons & BUTTON_JUMP) && phys->in_ground) {
-        phys->linear_velocity.y = PLAYER_JUMP_FORCE;
+        float jump_force = config ? config->player_jump_force : PLAYER_JUMP_FORCE_DEFAULT;
+        phys->linear_velocity.y = jump_force;
         phys->in_ground = false;
     }
 }
@@ -61,10 +64,13 @@ void constrain_player_upright(GameWorld* world, int player_idx) {
     world->transform[player_idx].orientation = upright_q;
 }
 
-static void apply_magnetic_force(GameWorld* world, int player_idx, int polarity) {
+static void apply_magnetic_force(GameWorld* world, int player_idx, int polarity, GameConfig* config) {
     if (polarity == 0) return;
 
     Vector3 player_pos = world->transform[player_idx].position;
+    
+    float mag_radius = config ? config->magnet_radius : MAGNET_RADIUS_DEFAULT;
+    float mag_force = config ? config->magnet_force_magnitude : MAGNET_FORCE_DEFAULT;
 
     for (int i = 0; i < world->entity_count; i++) {
         if (!world->entity_active[i]) continue;
@@ -75,10 +81,10 @@ static void apply_magnetic_force(GameWorld* world, int player_idx, int polarity)
         Vector3 diff = Vector3Subtract(player_pos, target_pos);
         float dist_sq = Vector3LengthSqr(diff);
 
-        if (dist_sq < MAGNET_RADIUS * MAGNET_RADIUS && dist_sq > 0.1f) {
+        if (dist_sq < mag_radius * mag_radius && dist_sq > 0.1f) {
             float dist = sqrtf(dist_sq);
             Vector3 dir = Vector3Scale(diff, 1.0f / dist);
-            float force_mag = MAGNET_FORCE_MAGNITUDE * world->physics_prop[i].mass;
+            float force_mag = mag_force * world->physics_prop[i].mass;
             
             if (polarity == -1) dir = Vector3Negate(dir); 
 
@@ -90,7 +96,12 @@ static void apply_magnetic_force(GameWorld* world, int player_idx, int polarity)
     }
 }
 
-static bool update_energy_tank(float* energy, bool* overheated, bool is_using, float dt) {
+static bool update_energy_tank(float* energy, bool* overheated, bool is_using, float dt, GameConfig* config) {
+    float max_energy = config ? config->max_energy : MAX_ENERGY_DEFAULT;
+    float recharge_time = config ? config->recharge_time : RECHARGE_TIME_DEFAULT;
+    float recharge_rate = (recharge_time > 0.0f) ? (max_energy / recharge_time) : max_energy;
+    float unlock_threshold = max_energy * 0.5f;
+
     if (is_using && !(*overheated)) {
         *energy -= dt;
 
@@ -102,10 +113,10 @@ static bool update_energy_tank(float* energy, bool* overheated, bool is_using, f
 
         return true;
     } else {
-        *energy += RECHARGE_RATE * dt;
-        if (*energy > MAX_ENERGY) *energy = MAX_ENERGY;
+        *energy += recharge_rate * dt;
+        if (*energy > max_energy) *energy = max_energy;
 
-        if (*overheated && *energy >= UNLOCK_THRESHOLD) {
+        if (*overheated && *energy >= unlock_threshold) {
             *overheated = false;
         }
 
@@ -113,7 +124,7 @@ static bool update_energy_tank(float* energy, bool* overheated, bool is_using, f
     }
 }
 
-static void handle_power(GameWorld* world, int player_idx, PlayerInput input, float dt) {
+static void handle_power(GameWorld* world, int player_idx, PlayerInput input, float dt, GameConfig* config) {
     PlayerLogicComponent* logic = &world->player_logic[player_idx];
     
     bool want_attract = (input.buttons & BUTTON_ATTRACT);
@@ -121,16 +132,16 @@ static void handle_power(GameWorld* world, int player_idx, PlayerInput input, fl
 
     if (want_attract) want_repel = false;
 
-    bool can_attract = update_energy_tank(&logic->energy_attract, &logic->attract_overheat, want_attract, dt);
-    bool can_repel = update_energy_tank(&logic->energy_repel, &logic->repel_overheat, want_repel, dt);
+    bool can_attract = update_energy_tank(&logic->energy_attract, &logic->attract_overheat, want_attract, dt, config);
+    bool can_repel = update_energy_tank(&logic->energy_repel, &logic->repel_overheat, want_repel, dt, config);
     Color final_color = DARKPURPLE;
 
     if (can_attract && want_attract) {
-        apply_magnetic_force(world, player_idx, 1);
+        apply_magnetic_force(world, player_idx, 1, config);
         final_color = RED;
     } 
     else if (can_repel && want_repel) {
-        apply_magnetic_force(world, player_idx, -1);
+        apply_magnetic_force(world, player_idx, -1, config);
         final_color = BLUE;
     }
 
@@ -141,7 +152,7 @@ static void handle_power(GameWorld* world, int player_idx, PlayerInput input, fl
     world->rendering[player_idx].model.materials[0].maps[MATERIAL_MAP_DIFFUSE].color = final_color;
 }
 
-static void update_player_dash(GameWorld* world, int player_idx, PlayerInput input, float dt) {
+static void update_player_dash(GameWorld* world, int player_idx, PlayerInput input, float dt, GameConfig* config) {
     PlayerLogicComponent* logic = &world->player_logic[player_idx];
     PhysicsStateComponent* phys = &world->physics_state[player_idx];
 
@@ -149,15 +160,18 @@ static void update_player_dash(GameWorld* world, int player_idx, PlayerInput inp
         logic->dash_cooldown -= dt;
     }
 
+    float dash_force = config ? config->dash_force : DASH_FORCE_DEFAULT;
+    float dash_cd = config ? config->dash_cooldown : DASH_COOLDOWN_DEFAULT;
+
     if ((input.buttons & BUTTON_DASH) && logic->dash_cooldown <= 0.0f) {
         Quaternion q = world->transform[player_idx].orientation;
         Vector3 forward = Vector3RotateByQuaternion((Vector3){0, 0, 1}, q);
         forward.y = 0;
         forward = Vector3Normalize(forward);
-        phys->linear_velocity = Vector3Add(phys->linear_velocity, Vector3Scale(forward, DASH_FORCE));
+        phys->linear_velocity = Vector3Add(phys->linear_velocity, Vector3Scale(forward, dash_force));
         phys->linear_velocity.y = 2.0f; 
         phys->in_ground = false;
-        logic->dash_cooldown = DASH_COOLDOWN;
+        logic->dash_cooldown = dash_cd;
     }
 }
 
@@ -174,13 +188,13 @@ static void handle_collision_damage(GameWorld* world) {
     }
 }
 
-void update_gameplay(GameWorld* world, int player_idx, PlayerInput input, float dt) {
+void update_gameplay(GameWorld* world, int player_idx, PlayerInput input, float dt, GameConfig* config) {
     if (player_idx == -1) return;
 
     update_player_orientation(world, player_idx, input.yaw);
-    update_player_movement(world, player_idx, input);
-    update_player_jump(world, player_idx, input);
-    handle_power(world, player_idx, input, dt);
-    update_player_dash(world, player_idx, input, dt);
+    update_player_movement(world, player_idx, input, config);
+    update_player_jump(world, player_idx, input, config);
+    handle_power(world, player_idx, input, dt, config);
+    update_player_dash(world, player_idx, input, dt, config);
     handle_collision_damage(world);
 }
