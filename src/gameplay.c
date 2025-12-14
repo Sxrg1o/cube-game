@@ -239,8 +239,8 @@ void check_fallen_entities(GameWorld* world) {
 }
 
 void trigger_random_event(GameWorld* world, GameConfig* config) {
-    float x = (float)((int)config->main_platform_size.x - rand() % (int)config->main_platform_size.x*2);
-    float z = (float)((int)config->main_platform_size.y - rand() % (int)config->main_platform_size.y*2);
+    float x = (float)((int)config->main_platform_size.x - rand() % (int)config->main_platform_size.x*1.5);
+    float z = (float)((int)config->main_platform_size.y - rand() % (int)config->main_platform_size.y*1.5);
     Vector3 pos = { x, 10.0f, z };
 
     // TODO: Randomize this even more

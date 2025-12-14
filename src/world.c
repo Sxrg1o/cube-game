@@ -201,10 +201,17 @@ void destroy_entity(GameWorld* world, int idx) {
 void clear_world(GameWorld* world) {
     for (int i = 0; i < world->entity_count; i++) {
         if (world->entity_active[i]) {
-            destroy_entity(world, i);
+            if (world->rendering[i].model.meshes) {
+                UnloadModel(world->rendering[i].model);
+                world->rendering[i].model = (Model){0};
+            }
         }
     }
+    world->entity_count = 0;
+    world->free_idx_top = -1; 
     world->collision_event_count = 0;
+
+    memset(world->entity_active, 0, world->max_entities * sizeof(bool));
 }
 
 void free_world(GameWorld* world) {
