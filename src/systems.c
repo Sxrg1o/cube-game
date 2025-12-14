@@ -202,13 +202,14 @@ void update_render(GameWorld* world) {
     }
 }
 
-void draw_hud(GameWorld* world, int player_idx, GameConfig* config) {
+void draw_hud(GameWorld* world, int player_idx, GameConfig* config, Match* match) {
     if (player_idx == -1) return;
 
     PlayerLogicComponent* logic = &world->player_logic[player_idx];
     float max_energy = config ? config->max_energy : MAX_ENERGY_DEFAULT;
     float dash_cd_max = config ? config->dash_cooldown : DASH_COOLDOWN_DEFAULT;
     const int screen_width = GetScreenWidth();
+    const int screen_height = GetScreenHeight();
     const int bar_width = 30;
     const int bar_height = 150;
     const int margin = 20;
@@ -257,4 +258,14 @@ void draw_hud(GameWorld* world, int player_idx, GameConfig* config) {
     DrawRectangle(posX_Dash, fillY_D, bar_width, fill_height_D, color_dash);
     DrawRectangleLines(posX_Dash, posY, bar_width, bar_height, BLACK);
     DrawText("D", posX_Dash + 8, posY + bar_height + 5, 20, BLACK);
+
+    DrawText(TextFormat("Ronda: %d / %d", match->current_round, config->rounds), screen_width/2 - 50, 10, 20, BLACK);
+                    
+    int minutes = (int)(match->time_remaining / 60);
+    int seconds = (int)(match->time_remaining) % 60;
+    DrawText(TextFormat("%02d:%02d", minutes, seconds), screen_width/2 - 30, 35, 20, BLACK);
+
+    if (!match->round_active) {
+        DrawText("RONDA TERMINADA", screen_width/2 - 150, screen_height/2 - 20, 40, RED);
+    }
 }

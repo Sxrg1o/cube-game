@@ -1,8 +1,10 @@
 #include <raylib.h>
 #include <raymath.h>
+#include <stdlib.h>
 
 #include "state.h"
 #include "gameplay.h"
+#include "world.h"
 
 static void update_player_orientation(GameWorld* world, int player_idx, float yaw) {
     Quaternion target_rotation = QuaternionFromAxisAngle((Vector3){0, 1, 0}, yaw);
@@ -188,6 +190,26 @@ static void handle_collision_damage(GameWorld* world) {
     }
 }
 
+int check_round_winner(GameWorld* world) {
+    int players_alive = 0;
+    int last_alive_id = -1;
+
+    for (int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
+        if (!world->player_logic[i].is_player) continue;
+
+        if (world->player_logic[i].health > 0) {
+            players_alive++;
+            last_alive_id = i;
+        }
+    }
+
+    if (players_alive <= 1) {
+        return last_alive_id;
+    }
+    return -1;
+}
+
 void update_gameplay(GameWorld* world, int player_idx, PlayerInput input, float dt, GameConfig* config) {
     if (player_idx == -1) return;
 
@@ -197,4 +219,48 @@ void update_gameplay(GameWorld* world, int player_idx, PlayerInput input, float 
     handle_power(world, player_idx, input, dt, config);
     update_player_dash(world, player_idx, input, dt, config);
     handle_collision_damage(world);
+}
+
+void check_fallen_entities(GameWorld* world) {
+    const float DEATH_Y_LIMIT = -20.0f;
+
+    for (int i = 0; i < world->entity_count; i++) {
+        if (!world->entity_active[i]) continue;
+
+        if (world->transform[i].position.y < DEATH_Y_LIMIT) {
+            if (world->player_logic[i].is_player) {
+                world->player_logic[i].health = 0.0f;
+                world->entity_active[i] = false; 
+            } else {
+                destroy_entity(world, i);
+            }
+        }
+    }
+}
+
+void trigger_random_event(GameWorld* world, GameConfig* config) {
+    float x = (float)((int)config->main_platform_size.x - rand() % (int)config->main_platform_size.x*2);
+    float z = (float)((int)config->main_platform_size.y - rand() % (int)config->main_platform_size.y*2);
+    Vector3 pos = { x, 10.0f, z };
+
+    // TODO: Randomize this even more
+    EntityDesc obj = {0};
+    obj.position = pos;
+    obj.orientation = (Quaternion){0,0,0,1};
+    obj.mass = 5.0f;
+    obj.restitution = 0.5f;
+    obj.is_player = false;
+    
+    if (rand() % 2 == 0) {
+        obj.shape_type = SHAPE_CUBE;
+        obj.dimentions = (Vector3){ 2.0f, 2.0f, 2.0f };
+        obj.color = ORANGE;
+    } else {
+        obj.shape_type = SHAPE_SPHERE;
+        obj.dimentions = (Vector3){ 1.5f, 0, 0 };
+        obj.color = PINK;
+    }
+
+    create_entity(world, obj, config);
+    TraceLog(LOG_INFO, "Evento: Objeto generado en (%.1f, %.1f)", x, z);
 }

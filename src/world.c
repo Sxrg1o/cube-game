@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <raylib.h>
 #include <raymath.h>
+#include <string.h>
 
 #include "state.h"
 #include "world.h"
@@ -61,6 +62,10 @@ int create_entity(GameWorld* world, EntityDesc desc, GameConfig* config) {
         idx = world->entity_count++;
     }
 
+    memset(&world->physics_state[idx], 0, sizeof(PhysicsStateComponent));
+    memset(&world->collision[idx], 0, sizeof(CollisionShapeComponent));
+    memset(&world->physics_prop[idx], 0, sizeof(PhysicsPropertiesComponent));
+
     world->entity_active[idx] = true;
 
     world->physics_state[idx] = (PhysicsStateComponent){0};
@@ -106,15 +111,11 @@ int create_entity(GameWorld* world, EntityDesc desc, GameConfig* config) {
             mesh = GenMeshCube(desc.dimentions.x, desc.dimentions.y, desc.dimentions.z);
             world->collision[idx].type = SHAPE_CUBE;
             world->collision[idx].params.cube_extents = Vector3Scale(desc.dimentions, 0.5f);
-            // Test
-            if(idx != 0 && !desc.is_player) world->physics_state[idx].angular_velocity = (Vector3){5.0f, 0.0f, 0.0f};
             break;
         case SHAPE_SPHERE:
             mesh = GenMeshSphere(desc.dimentions.x, 16, 16);
             world->collision[idx].type = SHAPE_SPHERE;
             world->collision[idx].params.sphere_radius = desc.dimentions.x;
-            // Test
-            if (!desc.is_player) world->physics_state[idx].linear_velocity = (Vector3){-5.0f, 0.0f, 0.0f};
             break;
         case SHAPE_PLANE:
             mesh = GenMeshPlane(desc.dimentions.x, desc.dimentions.z, 1, 1);
@@ -195,6 +196,15 @@ void destroy_entity(GameWorld* world, int idx) {
     }
 
     world->free_idx[++world->free_idx_top] = idx;
+}
+
+void clear_world(GameWorld* world) {
+    for (int i = 0; i < world->entity_count; i++) {
+        if (world->entity_active[i]) {
+            destroy_entity(world, i);
+        }
+    }
+    world->collision_event_count = 0;
 }
 
 void free_world(GameWorld* world) {

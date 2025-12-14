@@ -31,6 +31,7 @@ void draw_config_screen(Game* game, int screen_width, int screen_height) {
     float slider_w = 200;
     float slider_h = 20;
 
+    GuiLabel((Rectangle){start_x, start_y - 25, slider_w, 20}, "JUGADOR");
     GuiSlider((Rectangle){start_x, start_y, slider_w, slider_h}, 
         "Velocidad", TextFormat("%.1f", game->config.player_move_speed), 
         &game->config.player_move_speed, PLAYER_MOVE_SPEED_MIN, PLAYER_MOVE_SPEED_MAX);
@@ -41,41 +42,60 @@ void draw_config_screen(Game* game, int screen_width, int screen_height) {
         "Gravedad", TextFormat("%.1f", game->config.gravity_force), 
         &game->config.gravity_force, GRAVITY_FORCE_MIN, GRAVITY_FORCE_MAX);
     GuiSlider((Rectangle){start_x, start_y + spacing*3, slider_w, slider_h}, 
-        "Tamano Jugador", TextFormat("%.1f", game->config.player_size), 
+        "Tamano", TextFormat("%.1f", game->config.player_size), 
         &game->config.player_size, PLAYER_SIZE_MIN, PLAYER_SIZE_MAX);
 
-    float col2_x = start_x + 400;
+    float col2_x = start_x + 350;
+    GuiLabel((Rectangle){col2_x, start_y - 25, slider_w, 20}, "PODERES");
     GuiSlider((Rectangle){col2_x, start_y, slider_w, slider_h}, 
-        "Fuerza Magnet", TextFormat("%.0f", game->config.magnet_force_magnitude), 
+        "Fuerza Mag", TextFormat("%.0f", game->config.magnet_force_magnitude), 
         &game->config.magnet_force_magnitude, MAGNET_FORCE_MIN, MAGNET_FORCE_MAX);
     GuiSlider((Rectangle){col2_x, start_y + spacing, slider_w, slider_h}, 
-        "Radio Magnet", TextFormat("%.1f", game->config.magnet_radius), 
+        "Radio Mag", TextFormat("%.1f", game->config.magnet_radius), 
         &game->config.magnet_radius, MAGNET_RADIUS_MIN, MAGNET_RADIUS_MAX);
     GuiSlider((Rectangle){col2_x, start_y + spacing*2, slider_w, slider_h}, 
-        "Energia Max", TextFormat("%.1f", game->config.max_energy), 
+        "Energia", TextFormat("%.1f", game->config.max_energy), 
         &game->config.max_energy, MAX_ENERGY_MIN, MAX_ENERGY_MAX);
     GuiSlider((Rectangle){col2_x, start_y + spacing*3, slider_w, slider_h}, 
-        "Recarga (s)", TextFormat("%.1f", game->config.recharge_time), 
+        "Recarga", TextFormat("%.1f", game->config.recharge_time), 
         &game->config.recharge_time, RECHARGE_TIME_MIN, RECHARGE_TIME_MAX);
 
-    float col3_x = col2_x + 400;
+    float col3_x = col2_x + 350;
+    GuiLabel((Rectangle){col3_x, start_y - 25, slider_w, 20}, "COMBATE");
     GuiSlider((Rectangle){col3_x, start_y, slider_w, slider_h}, 
-        "Dash Fuerza", TextFormat("%.1f", game->config.dash_force), 
+        "Dash F", TextFormat("%.1f", game->config.dash_force), 
         &game->config.dash_force, DASH_FORCE_MIN, DASH_FORCE_MAX);
     GuiSlider((Rectangle){col3_x, start_y + spacing, slider_w, slider_h}, 
-        "Dash CD (s)", TextFormat("%.1f", game->config.dash_cooldown), 
+        "Dash CD", TextFormat("%.1f", game->config.dash_cooldown), 
         &game->config.dash_cooldown, DASH_COOLDOWN_MIN, DASH_COOLDOWN_MAX);
     GuiSlider((Rectangle){col3_x, start_y + spacing*2, slider_w, slider_h}, 
-        "Salud Total", TextFormat("%.0f", game->config.total_health), 
+        "Salud", TextFormat("%.0f", game->config.total_health), 
         &game->config.total_health, TOTAL_HEALTH_MIN, TOTAL_HEALTH_MAX);
 
+    float col4_x = col3_x + 350;
+    GuiLabel((Rectangle){col4_x, start_y - 25, slider_w, 20}, "ENTORNO / REGLAS");
+    GuiSlider((Rectangle){col4_x, start_y, slider_w, slider_h}, 
+        "Plat X", TextFormat("%.0f", game->config.main_platform_size.x), 
+        &game->config.main_platform_size.x, PLATFORM_X_MIN, PLATFORM_X_MAX);
+    GuiSlider((Rectangle){col4_x, start_y + spacing, slider_w, slider_h}, 
+        "Plat Y", TextFormat("%.0f", game->config.main_platform_size.y), 
+        &game->config.main_platform_size.y, PLATFORM_Y_MIN, PLATFORM_Y_MAX);
+    GuiSlider((Rectangle){col4_x, start_y + spacing*2, slider_w, slider_h}, 
+        "T. Eventos", TextFormat("%.1f s", game->config.time_between_events), 
+        &game->config.time_between_events, TIME_EVENTS_MIN, TIME_EVENTS_MAX);
+    float rounds_float = (float)game->config.rounds;
+
+    GuiSlider((Rectangle){col4_x, start_y + spacing*3, slider_w, slider_h}, 
+        "Rondas", TextFormat("%d", game->config.rounds), 
+        &rounds_float, (float)ROUNDS_MIN, (float)ROUNDS_MAX);
+    game->config.rounds = (int)rounds_float;
+    
     if (GuiButton((Rectangle){screen_width - 200, screen_height - 100, 150, 50}, "COMENZAR")) {
         init_world(&game->world, 100);
-        create_scene(&game->world, &game->config);
-        game->state = PLAYING;
+        game->state = PLAYING; 
     }
 
-    if (GuiButton((Rectangle){50, screen_height - 100, 100, 40}, "ME VOY")) {
+    if (GuiButton((Rectangle){50, screen_height - 100, 100, 40}, "VOLVER")) {
         game->state = MENU;
     }
 }

@@ -13,7 +13,7 @@ static int check_sphere_sphere(GameWorld* world, int i, int j, Contact* contact)
     bool collides;
     Vector3 sphere1_pos = world->transform[i].position;
     Vector3 sphere2_pos = world->transform[j].position;
-    Vector3 delta = Vector3Subtract(sphere1_pos, sphere2_pos);
+    Vector3 delta = Vector3Subtract(sphere2_pos, sphere1_pos);
     float distance = Vector3Length(delta);
     float sphere1_r = world->collision[i].params.sphere_radius;
     float sphere2_r = world->collision[j].params.sphere_radius;
@@ -25,7 +25,7 @@ static int check_sphere_sphere(GameWorld* world, int i, int j, Contact* contact)
         if(distance < 0.0001f) delta = (Vector3) {0.0f, 1.0f, 0.0f};
         contact->normal = Vector3Normalize(delta);
         contact->penetration = sphere1_r + sphere2_r - distance;
-        contact->impact_point = Vector3Add(sphere2_pos, Vector3Scale(contact->normal, sphere2_r));
+        contact->impact_point = Vector3Subtract(sphere2_pos, Vector3Scale(contact->normal, sphere2_r));
         return 1;
     }
     return 0;

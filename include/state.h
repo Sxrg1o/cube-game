@@ -54,9 +54,13 @@
 #define PLAYER_SIZE_DEFAULT 2.0f
 #define PLAYER_SIZE_MAX 4.0f
 
-#define MATCH_DURATION_MIN 3
-#define MATCH_DURATION_DEFAULT 3
-#define MATCH_DURATION_MAX 8
+#define MATCH_DURATION_MIN 4.0f
+#define MATCH_DURATION_DEFAULT 4.0f
+#define MATCH_DURATION_MAX 8.0f
+
+#define TIME_EVENTS_MIN 0.5f
+#define TIME_EVENTS_DEFAULT 1.0f
+#define TIME_EVENTS_MAX 2.0f
 
 #define ROUNDS_MIN 1
 #define ROUNDS_DEFAULT 3
@@ -116,13 +120,25 @@ typedef struct {
     float total_health;
     float gravity_force;
     Vector2 main_platform_size;
+    float time_between_events;
     float player_size;
     float match_duration;
     int rounds;
 } GameConfig;
 
 typedef struct {
+    int current_round;
+    int max_rounds;
+    float time_remaining;
+    float next_event_in;
+    bool round_active;
+    int scores[4];
+    float next_round_in;
+} Match;
+
+typedef struct {
     GameConfig config;
     GameWorld world;
     GameState state;
+    Match match;
 } Game;

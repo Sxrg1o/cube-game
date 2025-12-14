@@ -24,3 +24,6 @@ typedef struct {
 
 void update_gameplay(GameWorld*, int, PlayerInput, float, GameConfig*);
 void constrain_player_upright(GameWorld*, int);
+void check_fallen_entities(GameWorld*);
+void trigger_random_event(GameWorld*, GameConfig*);
+int check_round_winner(GameWorld*);
